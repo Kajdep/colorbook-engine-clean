@@ -118,7 +118,7 @@ const CanvaExport: React.FC<CanvaExportProps> = ({ isOpen, onClose, projectId })
       }
 
       if (result.success) {
-        if (result.downloadUrl) {
+        if ('downloadUrl' in result && result.downloadUrl) {
           const link = document.createElement('a');
           link.href = result.downloadUrl;
           link.download = `${project.title}-canva-export.${exportFormat === 'package' ? 'zip' : 'json'}`;
