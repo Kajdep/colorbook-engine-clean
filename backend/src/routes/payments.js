@@ -1,7 +1,7 @@
 const express = require('express');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { authenticateToken } = require('../middleware/auth');
-const { query, withTransaction } = require('../database/connection');
+const { query } = require('../database/connection');
 const {
   createCheckoutSchema,
   webhookEventSchema,
@@ -128,29 +128,34 @@ router.post('/create-checkout-session', authenticateToken, validateRequest(creat
 // Get current subscription
 router.get('/subscription', authenticateToken, async (req, res) => {
   try {
-    const userId = req.user.userId;
-    const user = await User.findById(userId);
+    const userId = req.user.id;
+    const userResult = await query(
+      'SELECT subscription_tier, subscription_status, stripe_subscription_id FROM users WHERE id = $1',
+      [userId]
+    );
 
-    if (!user) {
+    if (userResult.rows.length === 0) {
       return res.status(404).json({
         success: false,
         error: 'User not found'
       });
     }
 
+    const user = userResult.rows[0];
+
     let subscription = null;
-    if (user.stripeSubscriptionId) {
-      subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
+    if (user.stripe_subscription_id) {
+      subscription = await stripe.subscriptions.retrieve(user.stripe_subscription_id);
     }
 
     res.json({
       success: true,
       subscription: {
-        plan: user.subscriptionPlan || 'free',
-        status: subscription?.status || 'inactive',
+        plan: user.subscription_tier || 'free',
+        status: subscription?.status || user.subscription_status || 'inactive',
         currentPeriodEnd: subscription?.current_period_end,
         cancelAtPeriodEnd: subscription?.cancel_at_period_end,
-        features: SUBSCRIPTION_PLANS[user.subscriptionPlan || 'free'].features
+        features: SUBSCRIPTION_PLANS[user.subscription_tier || 'free'].features
       }
     });
   } catch (error) {
@@ -165,10 +170,13 @@ router.get('/subscription', authenticateToken, async (req, res) => {
 // Cancel subscription
 router.post('/cancel-subscription', authenticateToken, async (req, res) => {
   try {
-    const userId = req.user.userId;
-    const user = await User.findById(userId);
+    const userId = req.user.id;
+    const userResult = await query(
+      'SELECT stripe_subscription_id FROM users WHERE id = $1',
+      [userId]
+    );
 
-    if (!user || !user.stripeSubscriptionId) {
+    if (userResult.rows.length === 0 || !userResult.rows[0].stripe_subscription_id) {
       return res.status(404).json({
         success: false,
         error: 'No active subscription found'
@@ -176,7 +184,7 @@ router.post('/cancel-subscription', authenticateToken, async (req, res) => {
     }
 
     const subscription = await stripe.subscriptions.update(
-      user.stripeSubscriptionId,
+      userResult.rows[0].stripe_subscription_id,
       {
         cancel_at_period_end: true,
       }
@@ -199,10 +207,13 @@ router.post('/cancel-subscription', authenticateToken, async (req, res) => {
 // Reactivate subscription
 router.post('/reactivate-subscription', authenticateToken, async (req, res) => {
   try {
-    const userId = req.user.userId;
-    const user = await User.findById(userId);
+    const userId = req.user.id;
+    const userResult = await query(
+      'SELECT stripe_subscription_id FROM users WHERE id = $1',
+      [userId]
+    );
 
-    if (!user || !user.stripeSubscriptionId) {
+    if (userResult.rows.length === 0 || !userResult.rows[0].stripe_subscription_id) {
       return res.status(404).json({
         success: false,
         error: 'No subscription found'
@@ -210,7 +221,7 @@ router.post('/reactivate-subscription', authenticateToken, async (req, res) => {
     }
 
     const subscription = await stripe.subscriptions.update(
-      user.stripeSubscriptionId,
+      userResult.rows[0].stripe_subscription_id,
       {
         cancel_at_period_end: false,
       }
@@ -272,57 +283,41 @@ router.post('/webhook', express.raw({type: 'application/json'}), async (req, res
 async function handleCheckoutCompleted(session) {
   const userId = session.client_reference_id;
   const planId = session.metadata.planId;
-  
+
   if (userId && planId) {
-    await User.findByIdAndUpdate(userId, {
-      subscriptionPlan: planId,
-      stripeCustomerId: session.customer,
-      subscriptionStartDate: new Date(),
-      subscriptionStatus: 'active'
-    });
+    await query(
+      'UPDATE users SET subscription_tier = $1, stripe_customer_id = $2, stripe_subscription_id = $3, subscription_status = $4 WHERE id = $5',
+      [planId, session.customer, session.subscription, 'active', userId]
+    );
   }
 }
 
 async function handleSubscriptionUpdated(subscription) {
-  const user = await User.findOne({ stripeCustomerId: subscription.customer });
-  if (user) {
-    await User.findByIdAndUpdate(user._id, {
-      stripeSubscriptionId: subscription.id,
-      subscriptionStatus: subscription.status,
-      subscriptionEndDate: new Date(subscription.current_period_end * 1000)
-    });
-  }
+  await query(
+    'UPDATE users SET stripe_subscription_id = $1, subscription_status = $2, subscription_expires_at = to_timestamp($3) WHERE stripe_customer_id = $4',
+    [subscription.id, subscription.status, subscription.current_period_end, subscription.customer]
+  );
 }
 
 async function handleSubscriptionDeleted(subscription) {
-  const user = await User.findOne({ stripeCustomerId: subscription.customer });
-  if (user) {
-    await User.findByIdAndUpdate(user._id, {
-      subscriptionPlan: 'free',
-      subscriptionStatus: 'cancelled',
-      stripeSubscriptionId: null,
-      subscriptionEndDate: new Date()
-    });
-  }
+  await query(
+    'UPDATE users SET subscription_tier = $1, subscription_status = $2, stripe_subscription_id = NULL, subscription_expires_at = NOW() WHERE stripe_customer_id = $3',
+    ['free', 'cancelled', subscription.customer]
+  );
 }
 
 async function handlePaymentSucceeded(invoice) {
-  const user = await User.findOne({ stripeCustomerId: invoice.customer });
-  if (user) {
-    await User.findByIdAndUpdate(user._id, {
-      lastPaymentDate: new Date(),
-      subscriptionStatus: 'active'
-    });
-  }
+  await query(
+    'UPDATE users SET subscription_status = $1 WHERE stripe_customer_id = $2',
+    ['active', invoice.customer]
+  );
 }
 
 async function handlePaymentFailed(invoice) {
-  const user = await User.findOne({ stripeCustomerId: invoice.customer });
-  if (user) {
-    await User.findByIdAndUpdate(user._id, {
-      subscriptionStatus: 'past_due'
-    });
-  }
+  await query(
+    'UPDATE users SET subscription_status = $1 WHERE stripe_customer_id = $2',
+    ['past_due', invoice.customer]
+  );
 }
 
 module.exports = router;
