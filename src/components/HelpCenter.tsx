@@ -7,30 +7,26 @@ import {
   ChevronDown, 
   ChevronRight, 
   ChevronLeft, // Added for sidebar toggle
-  ExternalLink,
   MessageCircle,
   Mail,
-  PhoneCall,
   Users,
   FileText,
   Lightbulb, // Added for General Instructions help item
   Settings,
-  Download,
   Upload, // Re-used or for Importing Files
   Palette,
   PenTool, // Re-used or for Magic Editor
   Image,
   FileImage,
   DollarSign,
-  Shield,
   Globe,
-  Smartphone,
   Plus,
-  Sparkles, 
+  Sparkles,
   CheckCircle,
   Edit, // Added for Magic Editor help item
   UserCog, // Added for Managing Account help item
-  FileUp // Added for Importing Files help item
+  FileUp, // Added for Importing Files help item
+  LucideProps
 } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 
@@ -39,7 +35,7 @@ interface HelpItem {
   title: string;
   content: string;
   category: string;
-  icon: React.ComponentType<{size?: number; className?: string}>;
+  icon: React.ComponentType<LucideProps>;
   videoUrl?: string;
   steps?: string[];
 }

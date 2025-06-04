@@ -16,7 +16,6 @@ const StoryGenerator: React.FC = () => {
   } = useAppStore();
 
   const [isGenerating, setIsGenerating] = useState(false);
-  const [characterReference, setCharacterReference] = useState<{[key: string]: string}>({});
   const [formData, setFormData] = useState<StoryGenerationParams>({
     theme: '',
     characters: '',
@@ -164,22 +163,6 @@ const StoryGenerator: React.FC = () => {
     });
   };
 
-  const extractCharacters = (text: string): string[] => {
-    const characters = text.split(',').map(char => char.trim()).filter(char => char.length > 0);
-    return characters;
-  };
-
-  const applyCharacterConsistency = (basePrompt: string): string => {
-    let enhancedPrompt = basePrompt;
-    
-    Object.entries(characterReference).forEach(([character, description]) => {
-      if (basePrompt.toLowerCase().includes(character.toLowerCase())) {
-        enhancedPrompt += ` Character consistency note: ${description}`;
-      }
-    });
-    
-    return enhancedPrompt;
-  };
 
   async function generateSingleImage(pageIndex: number) {
     if (!currentStory || !currentStory.pages[pageIndex]) {
@@ -794,7 +777,7 @@ const StoryPageCard: React.FC<StoryPageCardProps> = ({
   };
 
   // Magic editor functionality
-  const handleTextSelection = (event: React.MouseEvent) => {
+  const handleTextSelection = (_event: React.MouseEvent) => {
     const selection = window.getSelection();
     if (selection && selection.toString().length > 0) {
       const selectedText = selection.toString();

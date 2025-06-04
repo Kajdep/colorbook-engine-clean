@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Palette, Brush, Eraser, Undo, Redo, Trash2, Download, RotateCcw, Save, Image as ImageIcon } from 'lucide-react';
+import { Palette, Brush, Eraser, Undo, Redo, Trash2, Download } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 
 interface DrawingPoint {

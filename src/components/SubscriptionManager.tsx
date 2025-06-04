@@ -1,15 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  CreditCard, 
-  Check, 
-  Star, 
-  Zap, 
-  Crown, 
-  Calendar,
-  Users,
+import {
+  Check,
+  Star,
+  Zap,
+  Crown,
   Settings,
-  AlertCircle,
-  ExternalLink,
   Loader
 } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
@@ -42,7 +37,7 @@ interface UserSubscription {
 }
 
 const SubscriptionManager: React.FC = () => {
-  const { user, showNotification } = useAppStore();
+  const { user, addNotification } = useAppStore();
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [userSubscription, setUserSubscription] = useState<UserSubscription | null>(null);
   const [loading, setLoading] = useState(true);
@@ -133,7 +128,7 @@ const SubscriptionManager: React.FC = () => {
       }
     } catch (error) {
       console.error('Failed to fetch subscription data:', error);
-      showNotification('Failed to load subscription information', 'error');
+      addNotification({ message: 'Failed to load subscription information', type: 'error' });
       setPlans(defaultPlans);
     } finally {
       setLoading(false);
@@ -142,7 +137,7 @@ const SubscriptionManager: React.FC = () => {
 
   const handleUpgrade = async (priceId: string, planName: string) => {
     if (!user) {
-      showNotification('Please log in to upgrade your subscription', 'error');
+      addNotification({ message: 'Please log in to upgrade your subscription', type: 'error' });
       return;
     }
 
@@ -175,7 +170,7 @@ const SubscriptionManager: React.FC = () => {
       
     } catch (error) {
       console.error('Upgrade error:', error);
-      showNotification('Failed to start upgrade process', 'error');
+      addNotification({ message: 'Failed to start upgrade process', type: 'error' });
     } finally {
       setUpgradeLoading(false);
     }
@@ -183,7 +178,7 @@ const SubscriptionManager: React.FC = () => {
 
   const handleManageSubscription = async () => {
     if (!userSubscription?.customerId) {
-      showNotification('No active subscription to manage', 'error');
+      addNotification({ message: 'No active subscription to manage', type: 'error' });
       return;
     }
 
@@ -208,7 +203,7 @@ const SubscriptionManager: React.FC = () => {
       
     } catch (error) {
       console.error('Management error:', error);
-      showNotification('Failed to open subscription management', 'error');
+      addNotification({ message: 'Failed to open subscription management', type: 'error' });
     } finally {
       setManagingSubscription(false);
     }

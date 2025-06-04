@@ -11,7 +11,6 @@ import {
   ComplianceResults
 } from '../types';
 import { persistentStorage } from '../utils/persistentStorage';
-import { backendAPI } from '../utils/backendAPI';
 
 interface User {
   id: string;
@@ -74,8 +73,8 @@ interface AppState {
   };
   
   // Auth Actions
-  login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, name: string) => Promise<void>;
+  login: (email: string) => Promise<void>;
+  register: (email: string, name: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshAuth: () => Promise<void>;
   updateUser: (updates: Partial<User>) => Promise<void>;
@@ -210,7 +209,7 @@ export const useAppStore = create<AppState>()(
       isSidebarCollapsed: false, // Initialize new state
 
       // Auth Actions
-      login: async (email: string, password: string) => {
+      login: async (email: string) => {
         try {
           set({ isInitializingAuth: true });
           
@@ -248,7 +247,7 @@ export const useAppStore = create<AppState>()(
         }
       },
       
-      register: async (email: string, password: string, name: string) => {
+      register: async (email: string, name: string) => {
         try {
           set({ isInitializingAuth: true });
           

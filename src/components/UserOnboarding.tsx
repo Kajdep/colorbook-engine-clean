@@ -1,15 +1,12 @@
 import React, { useState } from 'react';
-import { 
-  ChevronRight, 
-  ChevronLeft, 
-  Check, 
-  Sparkles, 
-  Palette, 
-  FileText, 
-  Settings,
+import {
+  ChevronRight,
+  ChevronLeft,
+  Check,
+  Sparkles,
   BookOpen,
   X,
-  Plus
+  LucideProps
 } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 
@@ -17,7 +14,7 @@ interface OnboardingStep {
   id: string;
   title: string;
   description: string;
-  icon: React.ComponentType<{size?: number; className?: string}>;
+  icon: React.ComponentType<LucideProps>;
   content: React.ReactNode;
   action?: {
     label: string;
