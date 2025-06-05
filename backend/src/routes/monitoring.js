@@ -1,15 +1,9 @@
 const express = require('express');
 const os = require('os');
-const { Pool } = require('pg');
 const performanceTracker = require('../services/performanceTracker');
 const { getErrorSummary } = require('../services/sentryService');
+const { pool, query } = require('../database/connection');
 const router = express.Router();
-
-// Database connection for health checks
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
-});
 
 // System health check
 router.get('/health', async (req, res) => {
@@ -18,7 +12,7 @@ router.get('/health', async (req, res) => {
   try {
     // Check database connectivity
     const dbStart = Date.now();
-    await pool.query('SELECT 1');
+    await query('SELECT 1');
     const dbResponseTime = Date.now() - dbStart;
 
     // System metrics
@@ -106,15 +100,31 @@ router.get('/metrics', async (req, res) => {
     // Get active connections and database stats
     let dbStats = null;
     try {
-      const dbStatsQuery = await pool.query(`
-        SELECT 
+      const dbStatsQuery = await query(`
+        SELECT
           (SELECT count(*) FROM pg_stat_activity WHERE state = 'active') as active_connections,
           (SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public') as table_count,
           (SELECT pg_size_pretty(pg_database_size(current_database()))) as database_size
       `);
-      dbStats = dbStatsQuery.rows[0];
+      const userCount = await query('SELECT COUNT(*) FROM users');
+      const projectCount = await query('SELECT COUNT(*) FROM projects');
+      dbStats = {
+        ...dbStatsQuery.rows[0],
+        rows: {
+          users: parseInt(userCount.rows[0].count, 10),
+          projects: parseInt(projectCount.rows[0].count, 10)
+        }
+      };
     } catch (dbError) {
       console.error('Database metrics error:', dbError);
+    }
+
+    // Get recent error summary from Sentry
+    let errorSummary = null;
+    try {
+      errorSummary = await getErrorSummary('24h');
+    } catch (sentryErr) {
+      console.error('Sentry metrics error:', sentryErr);
     }
 
     const metrics = {
@@ -147,6 +157,7 @@ router.get('/metrics', async (req, res) => {
         networkInterfaces: Object.keys(os.networkInterfaces()).length
       },
       database: dbStats,
+      errors: errorSummary || { available: false },
       environment: {
         nodeEnv: process.env.NODE_ENV,
         nodeVersion: process.version,
@@ -168,8 +179,8 @@ router.get('/metrics', async (req, res) => {
 router.get('/analytics', async (req, res) => {
   try {
     // Get application usage statistics
-    const userStats = await pool.query(`
-      SELECT 
+    const userStats = await query(`
+      SELECT
         COUNT(*) as total_users,
         COUNT(CASE WHEN created_at > NOW() - INTERVAL '24 hours' THEN 1 END) as new_users_24h,
         COUNT(CASE WHEN last_login > NOW() - INTERVAL '24 hours' THEN 1 END) as active_users_24h,
@@ -177,8 +188,8 @@ router.get('/analytics', async (req, res) => {
       FROM users
     `);
 
-    const projectStats = await pool.query(`
-      SELECT 
+    const projectStats = await query(`
+      SELECT
         COUNT(*) as total_projects,
         COUNT(CASE WHEN created_at > NOW() - INTERVAL '24 hours' THEN 1 END) as new_projects_24h,
         COUNT(CASE WHEN updated_at > NOW() - INTERVAL '24 hours' THEN 1 END) as active_projects_24h,
