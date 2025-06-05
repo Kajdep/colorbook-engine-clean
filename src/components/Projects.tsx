@@ -173,13 +173,14 @@ interface ProjectCardProps {
   onDelete: (id: string, title: string) => void;
 }
 
-const ProjectCard: React.FC<ProjectCardProps> = ({ 
-  project, 
-  onOpen, 
-  onDuplicate, 
-  onDelete 
+const ProjectCard: React.FC<ProjectCardProps> = ({
+  project,
+  onOpen,
+  onDuplicate,
+  onDelete
 }) => {
   const [showMenu, setShowMenu] = useState(false);
+  const { driveConnected, getProjectDriveStatus } = useAppStore();
 
   const storyPages = project.pages.filter(p => p.type === 'story').length;
   const coloringPages = project.pages.filter(p => p.type === 'coloring').length;
@@ -242,6 +243,24 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
             <Calendar size={16} />
             <span>{formatDate(project.createdAt)}</span>
           </div>
+          {driveConnected && (
+            <div className="flex items-center gap-1 ml-auto">
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  getProjectDriveStatus(project.id) === 'synced'
+                    ? 'bg-green-500'
+                    : getProjectDriveStatus(project.id) === 'syncing'
+                    ? 'bg-blue-500 animate-pulse'
+                    : getProjectDriveStatus(project.id) === 'error'
+                    ? 'bg-red-500'
+                    : 'bg-gray-400'
+                }`}
+              />
+              <span className="capitalize text-gray-600">
+                {getProjectDriveStatus(project.id)}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Page Type Breakdown */}

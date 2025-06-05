@@ -12,6 +12,7 @@ import {
 } from '../types';
 import { persistentStorage } from '../utils/persistentStorage';
 import backendAPI from '../utils/backendAPI';
+import driveService from '../utils/driveService';
 
 interface User {
   id: string;
@@ -72,6 +73,12 @@ interface AppState {
     queueSize: number;
     lastSync: string | null;
   };
+  // Google Drive
+  driveConnected: boolean;
+  connectDrive: () => Promise<void>;
+  disconnectDrive: () => Promise<void>;
+  syncProjectToDrive: (project: Project) => Promise<void>;
+  getProjectDriveStatus: (id: string) => 'local' | 'syncing' | 'synced' | 'error';
   
   // Auth Actions
   login: (email: string, password: string) => Promise<void>;
@@ -207,6 +214,7 @@ export const useAppStore = create<AppState>()(
         queueSize: 0,
         lastSync: null
       },
+      driveConnected: false,
       isSidebarCollapsed: false, // Initialize new state
 
       // Auth Actions
@@ -815,6 +823,47 @@ export const useAppStore = create<AppState>()(
           });
         }
       },
+
+      connectDrive: async () => {
+        try {
+          const { apiSettings } = get();
+          if (!apiSettings.googleApiKey || !apiSettings.googleProjectId) {
+            throw new Error('Missing Google API credentials');
+          }
+          await driveService.init({
+            apiKey: apiSettings.googleApiKey,
+            clientId: apiSettings.googleProjectId
+          });
+          await driveService.signIn();
+          set({ driveConnected: true });
+          get().addNotification({ type: 'success', message: 'Connected to Google Drive' });
+        } catch (error) {
+          console.error('Drive connect error:', error);
+          get().addNotification({ type: 'error', message: 'Failed to connect Drive' });
+        }
+      },
+
+      disconnectDrive: async () => {
+        try {
+          await driveService.signOut();
+          set({ driveConnected: false });
+          get().addNotification({ type: 'success', message: 'Disconnected from Google Drive' });
+        } catch (error) {
+          console.error('Drive disconnect error:', error);
+          get().addNotification({ type: 'error', message: 'Failed to disconnect Drive' });
+        }
+      },
+
+      syncProjectToDrive: async (project) => {
+        try {
+          if (!get().driveConnected) return;
+          await driveService.syncProject(project);
+        } catch (error) {
+          console.error('Drive sync error:', error);
+        }
+      },
+
+      getProjectDriveStatus: (id) => driveService.getSyncStatus(id),
       
       // Initialization
       initializeApp: async () => {
