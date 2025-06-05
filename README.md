@@ -156,6 +156,14 @@ Update these values in `.env` or your production configuration to tune API rate
 limits for your deployment.
 - The backend relies on **rate-limiter-flexible** v7.1.1 for in-memory limiting.
 
+### Testing with Real AI Services
+To run the automated tests against the live image and story generation APIs:
+
+1. Copy `.env.test.example` to `.env.test` and add your API credentials.
+2. Execute `./scripts/load-test-env.sh` to load the keys and run the tests.
+
+See [REAL_API_TESTING.md](REAL_API_TESTING.md) for full details.
+
 ## License
 
 This project is licensed under the [MIT License](LICENSE).

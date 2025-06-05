@@ -108,4 +108,5 @@ backend/uploads/
 
 # API keys and secrets
 .env*
+!.env.test.example
 config/keys.js
