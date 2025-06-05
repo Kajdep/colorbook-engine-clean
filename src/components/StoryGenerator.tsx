@@ -75,7 +75,7 @@ const StoryGenerator: React.FC = () => {
     if (!apiSettings.apiKey) {
       addNotification({
         type: 'warning',
-        message: 'Please configure your API key in settings first'
+        message: 'Please configure your API key in API Settings first'
       });
       setCurrentSection('api-settings');
       return;
