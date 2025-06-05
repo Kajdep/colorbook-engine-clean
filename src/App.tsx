@@ -2,6 +2,10 @@ import { useEffect } from 'react';
 import APISettings from './components/APISettings';
 import AuthModal from './components/AuthModal';
 import Dashboard from './components/Dashboard';
+import Projects from './components/Projects';
+import DrawingCanvas from './components/DrawingCanvas';
+import PDFExport from './components/PDFExport';
+import KDPCompliance from './components/KDPCompliance';
 import HelpCenter from './components/HelpCenter';
 import NotificationContainer from './components/NotificationContainer';
 import Sidebar from './components/Sidebar';
@@ -43,6 +47,10 @@ function App() {
             )}
             <div className="p-6 overflow-auto flex-grow">
               {currentSection === 'dashboard' && <Dashboard onOpenStorage={() => {}} />}
+              {currentSection === 'projects' && <Projects />}
+              {currentSection === 'canvas' && <DrawingCanvas />}
+              {currentSection === 'pdf' && <PDFExport />}
+              {currentSection === 'kdp' && <KDPCompliance />}
               {currentSection === 'api-settings' && <APISettings />}
               {currentSection === 'story-generator' && <StoryGenerator />}
               {currentSection === 'image-generator' && <ImageGenerator />}
