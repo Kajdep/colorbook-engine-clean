@@ -135,6 +135,10 @@ npm run dev
 
 **Your professional coloring book creation tool is complete and ready for business!** 🎨✨
 
+## License
+
+This project is licensed under the [MIT License](LICENSE).
+
 ---
 
-*From messy prototype to production-ready application - transformation complete!*"# colorbook-engine-clean" 
+*From messy prototype to production-ready application - transformation complete!*"# colorbook-engine-clean"
