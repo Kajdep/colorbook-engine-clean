@@ -95,13 +95,42 @@ const APISettings: React.FC = () => {
     let errorMessage = `Failed to connect or fetch models for ${serviceName}.`;
 
     try {
-      // Placeholder for actual API calls - replace with real implementations
       if (currentImageService === 'openai') {
-        if (formData.imageApiKey) { models = [{ id: "dall-e-3", name: "DALL-E 3" }, { id: "dall-e-2", name: "DALL-E 2" }]; success = true; }
+        const response = await fetch('https://api.openai.com/v1/models', {
+          headers: { 'Authorization': `Bearer ${formData.imageApiKey}` }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          models = (data.data || [])
+            .filter((model: any) => model.id && model.id.startsWith('dall-e'))
+            .map((model: any) => ({ id: model.id, name: model.id }));
+          success = true;
+        } else {
+          errorMessage = await response.text();
+        }
       } else if (currentImageService === 'stabilityai') {
-        if (formData.imageApiKey) { models = [{ id: "stable-diffusion-xl-1024-v1-0", name: "Stable Diffusion XL" }, { id: "stable-diffusion-v1-6", name: "Stable Diffusion v1.6" }]; success = true; }
+        const response = await fetch('https://api.stability.ai/v1alpha/models', {
+          headers: { 'Authorization': `Bearer ${formData.imageApiKey}` }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          models = (data || []).map((model: any) => ({ id: model.id, name: model.name || model.id }));
+          success = true;
+        } else {
+          errorMessage = await response.text();
+        }
       } else if (currentImageService === 'replicate') {
-         if (formData.imageApiKey) { models = [{ id: "stability-ai/sdxl", name: "SDXL (Replicate)" }]; success = true; }
+        const response = await fetch('https://api.replicate.com/v1/models', {
+          headers: { 'Authorization': `Token ${formData.imageApiKey}` }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          const list = data.results || data.models || [];
+          models = list.map((model: any) => ({ id: model.slug || model.id, name: model.name || model.slug || model.id }));
+          if (models.length > 0) success = true;
+        } else {
+          errorMessage = await response.text();
+        }
       }
 
       if (success) {
