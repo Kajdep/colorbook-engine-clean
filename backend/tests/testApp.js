@@ -1,3 +1,9 @@
+const fetch = require('node-fetch');
+global.fetch = fetch;
+global.Response = fetch.Response;
+global.Headers = fetch.Headers;
+global.Request = fetch.Request;
+
 const express = require('express');
 const authRoutes = require('../src/routes/auth');
 const projectRoutes = require('../src/routes/projects');
