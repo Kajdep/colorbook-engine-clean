@@ -1,7 +1,21 @@
 import React from 'react';
 import { useAppStore } from '../store/useAppStore';
 import { Section } from '../types'; // Import Section type
-import { Home, Settings, BookOpen, Palette, UploadCloud, User, HelpCircle, ChevronLeft, ChevronRight, LogOut } from 'lucide-react';
+import {
+  Home,
+  Settings,
+  BookOpen,
+  Palette,
+  FileText,
+  FolderOpen,
+  CheckCircle,
+  UploadCloud,
+  User,
+  HelpCircle,
+  ChevronLeft,
+  ChevronRight,
+  LogOut,
+} from 'lucide-react';
 
 const Sidebar: React.FC = () => {
   const {
@@ -45,8 +59,12 @@ const Sidebar: React.FC = () => {
       <nav className="flex-grow p-4 space-y-2 overflow-y-auto">
         {[
           { id: 'dashboard' as Section, label: 'Dashboard', icon: Home },
+          { id: 'projects' as Section, label: 'Projects', icon: FolderOpen },
           { id: 'story-generator' as Section, label: 'Story Generator', icon: BookOpen },
           { id: 'image-generator' as Section, label: 'Image Generator', icon: Palette },
+          { id: 'canvas' as Section, label: 'Canvas', icon: Palette },
+          { id: 'pdf' as Section, label: 'PDF Export', icon: FileText },
+          { id: 'kdp' as Section, label: 'KDP Compliance', icon: CheckCircle },
         ].map((item) => (
           <button
             key={item.id}
