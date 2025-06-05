@@ -1,7 +1,8 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import APISettings from './components/APISettings';
 import AuthModal from './components/AuthModal';
 import Dashboard from './components/Dashboard';
+import StorageManagement from './components/StorageManagement';
 import HelpCenter from './components/HelpCenter';
 import NotificationContainer from './components/NotificationContainer';
 import Sidebar from './components/Sidebar';
@@ -20,10 +21,26 @@ function App() {
     initializeApp,
   } = useAppStore();
 
+  const [showStorage, setShowStorage] = useState(false);
+
+  const openStorage = () => setShowStorage(true);
+  const closeStorage = () => setShowStorage(false);
+
   // Initialize the app on first load
   useEffect(() => {
     initializeApp();
   }, [initializeApp]);
+
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.ctrlKey && (e.key === 's' || e.key === 'S')) {
+        e.preventDefault();
+        setShowStorage(true);
+      }
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, []);
 
   return (
     <div className="flex h-screen bg-gray-100 font-sans">
@@ -43,7 +60,9 @@ function App() {
               </header>
             )}
             <div className="p-6 overflow-auto flex-grow">
-              {currentSection === 'dashboard' && <Dashboard onOpenStorage={() => {}} />}
+              {currentSection === 'dashboard' && (
+                <Dashboard onOpenStorage={openStorage} />
+              )}
               {currentSection === 'projects' && <Projects />}
               {currentSection === 'api-settings' && <APISettings />}
               {currentSection === 'story-generator' && <StoryGenerator />}
@@ -69,6 +88,7 @@ function App() {
           </div>
         )}
       </main>
+      <StorageManagement isOpen={showStorage} onClose={closeStorage} />
       <NotificationContainer />
     </div>
   );
