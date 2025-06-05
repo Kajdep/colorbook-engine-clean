@@ -6,6 +6,7 @@ const compression = require('compression');
 const morgan = require('morgan');
 const rateLimit = require('rate-limiter-flexible');
 const performanceLogger = require('./middleware/performanceLogger');
+const path = require('path'); // Ensure path is imported
 
 // Import routes
 const authRoutes = require('./routes/auth');
@@ -94,7 +95,8 @@ app.use('/api/payments', paymentRoutes); // Payment routes handle their own auth
 app.use('/api/monitoring', monitoringRoutes); // Monitoring routes
 
 // Static file serving for uploads
-app.use('/uploads', express.static('uploads'));
+// Corrected path to be absolute, resolving from server.js location
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // 404 handler
 app.use('*', (req, res) => {
