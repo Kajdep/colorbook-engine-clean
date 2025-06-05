@@ -87,13 +87,6 @@ const plans = [
 const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose }) => {
   const [selectedPlan, setSelectedPlan] = useState<string>('pro');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<'card' | 'paypal'>('card');
-  const [cardDetails, setCardDetails] = useState({
-    number: '',
-    expiry: '',
-    cvc: '',
-    name: ''
-  });
 
   const { user, addNotification, updateUser } = useAppStore();
 
@@ -169,29 +162,6 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose }) => {
       });
       setIsProcessing(false);
     }
-  };
-
-  const formatCardNumber = (value: string) => {
-    const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
-    const matches = v.match(/\d{4,16}/g);
-    const match = matches && matches[0] || '';
-    const parts = [];
-    for (let i = 0, len = match.length; i < len; i += 4) {
-      parts.push(match.substring(i, i + 4));
-    }
-    if (parts.length) {
-      return parts.join(' ');
-    } else {
-      return v;
-    }
-  };
-
-  const formatExpiry = (value: string) => {
-    const v = value.replace(/\D/g, '');
-    if (v.length >= 3) {
-      return v.slice(0, 2) + '/' + v.slice(2, 4);
-    }
-    return v;
   };
 
   return (
@@ -282,115 +252,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose }) => {
             })}
           </div>
 
-          {/* Payment Form */}
-          {selectedPlan !== 'free' && (
-            <div className="bg-gray-50 rounded-lg p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Payment Information</h3>
-              
-              {/* Payment Method Selection */}
-              <div className="flex gap-4 mb-6">
-                <button
-                  onClick={() => setPaymentMethod('card')}
-                  className={`flex-1 border-2 rounded-lg p-4 flex items-center gap-3 transition-colors ${
-                    paymentMethod === 'card' 
-                      ? 'border-blue-500 bg-blue-50' 
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  <CreditCard size={20} />
-                  <span className="font-medium">Credit Card</span>
-                </button>
-                <button
-                  onClick={() => setPaymentMethod('paypal')}
-                  className={`flex-1 border-2 rounded-lg p-4 flex items-center gap-3 transition-colors ${
-                    paymentMethod === 'paypal' 
-                      ? 'border-blue-500 bg-blue-50' 
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  <div className="w-5 h-5 bg-blue-600 rounded"></div>
-                  <span className="font-medium">PayPal</span>
-                </button>
-              </div>
 
-              {paymentMethod === 'card' && (
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Cardholder Name
-                    </label>
-                    <input
-                      type="text"
-                      value={cardDetails.name}
-                      onChange={(e) => setCardDetails(prev => ({ ...prev, name: e.target.value }))}
-                      className="form-input"
-                      placeholder="John Doe"
-                    />
-                  </div>
-                  
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Card Number
-                    </label>
-                    <input
-                      type="text"
-                      value={cardDetails.number}
-                      onChange={(e) => setCardDetails(prev => ({ 
-                        ...prev, 
-                        number: formatCardNumber(e.target.value) 
-                      }))}
-                      className="form-input"
-                      placeholder="1234 5678 9012 3456"
-                      maxLength={19}
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Expiry Date
-                    </label>
-                    <input
-                      type="text"
-                      value={cardDetails.expiry}
-                      onChange={(e) => setCardDetails(prev => ({ 
-                        ...prev, 
-                        expiry: formatExpiry(e.target.value) 
-                      }))}
-                      className="form-input"
-                      placeholder="MM/YY"
-                      maxLength={5}
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      CVC
-                    </label>
-                    <input
-                      type="text"
-                      value={cardDetails.cvc}
-                      onChange={(e) => setCardDetails(prev => ({ 
-                        ...prev, 
-                        cvc: e.target.value.replace(/\D/g, '').slice(0, 4) 
-                      }))}
-                      className="form-input"
-                      placeholder="123"
-                      maxLength={4}
-                    />
-                  </div>
-                </div>
-              )}
-
-              {paymentMethod === 'paypal' && (
-                <div className="text-center py-8">
-                  <p className="text-gray-600 mb-4">You will be redirected to PayPal to complete your payment.</p>
-                  <div className="w-16 h-16 bg-blue-600 rounded-lg flex items-center justify-center mx-auto">
-                    <span className="text-white font-bold text-lg">PP</span>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
 
           {/* Summary and Subscribe Button */}
           <div className="mt-8 flex items-center justify-between">
