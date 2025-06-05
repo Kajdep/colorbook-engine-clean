@@ -173,6 +173,24 @@ const StoryGenerator: React.FC = () => {
       });
       return;
     }
+
+    if (apiSettings.imageService.startsWith('google-')) {
+      if (!apiSettings.googleApiKey || !apiSettings.googleProjectId) {
+        addNotification({
+          type: 'warning',
+          message: 'Configure Google AI credentials in API Settings first'
+        });
+        setCurrentSection('api-settings');
+        return;
+      }
+    } else if (!apiSettings.imageApiKey && apiSettings.imageService !== 'none') {
+      addNotification({
+        type: 'warning',
+        message: 'Configure image API key in API Settings first'
+      });
+      setCurrentSection('api-settings');
+      return;
+    }
     
     const page = currentStory.pages[pageIndex];
     
@@ -211,7 +229,7 @@ const StoryGenerator: React.FC = () => {
   
   async function regenerateImage(pageIndex: number) {
     if (!currentStory || !currentStory.pages[pageIndex]) return;
-    
+
     const page = currentStory.pages[pageIndex];
     const variations = [
       ' with more detail',
@@ -223,11 +241,29 @@ const StoryGenerator: React.FC = () => {
     
     const variation = variations[Math.floor(Math.random() * variations.length)];
     const modifiedPrompt = page.imagePrompt + variation;
-    
+
     addNotification({
       type: 'info',
       message: `Regenerating image for page ${pageIndex + 1}...`
     });
+
+    if (apiSettings.imageService.startsWith('google-')) {
+      if (!apiSettings.googleApiKey || !apiSettings.googleProjectId) {
+        addNotification({
+          type: 'warning',
+          message: 'Configure Google AI credentials in API Settings first'
+        });
+        setCurrentSection('api-settings');
+        return;
+      }
+    } else if (!apiSettings.imageApiKey && apiSettings.imageService !== 'none') {
+      addNotification({
+        type: 'warning',
+        message: 'Configure image API key in API Settings first'
+      });
+      setCurrentSection('api-settings');
+      return;
+    }
     
     try {
       const aiService = new AIService(apiSettings);

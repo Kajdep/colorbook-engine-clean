@@ -175,7 +175,19 @@ IMPORTANT: Each IMAGE_PROMPT must be detailed enough to generate a proper colori
   }
 
   async generateImage(prompt: string): Promise<string> {
-    if (this.apiSettings.imageService === 'none' || !this.apiSettings.imageApiKey) {
+    const service = this.apiSettings.imageService;
+
+    // Determine which credentials are required based on provider
+    if (service === 'none') {
+      return this.generatePlaceholderColoringPage(prompt);
+    }
+
+    if (service.startsWith('google-')) {
+      if (!this.apiSettings.googleApiKey || !this.apiSettings.googleProjectId) {
+        throw new Error('Google AI credentials not configured');
+      }
+    } else if (!this.apiSettings.imageApiKey) {
+      // Non-Google providers require an image API key
       return this.generatePlaceholderColoringPage(prompt);
     }
 
