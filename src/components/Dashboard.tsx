@@ -55,7 +55,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenStorage }) => {
       description: 'Create engaging stories with detailed image prompts for coloring pages',
       icon: BookOpen,
       color: 'from-blue-500 to-purple-600',
-      action: () => setCurrentSection('story')
+      action: () => setCurrentSection('story-generator')
     },
     {
       title: 'Digital Canvas',
@@ -90,7 +90,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenStorage }) => {
       description: 'Configure OpenRouter API for story and image generation',
       icon: Settings,
       color: 'from-gray-500 to-gray-700',
-      action: () => setCurrentSection('settings')
+      action: () => setCurrentSection('api-settings')
     }
   ];
 
@@ -309,7 +309,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onOpenStorage }) => {
                 Create New Project
               </button>
               <button
-                onClick={() => setCurrentSection('story')}
+                onClick={() => setCurrentSection('story-generator')}
                 className="bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors duration-200"
               >
                 Generate AI Story
