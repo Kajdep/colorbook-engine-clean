@@ -1,9 +1,11 @@
+/// <reference types="vite/client" />
 /**
  * Comprehensive Persistent Storage System
  * Supports IndexedDB, localStorage, and backend synchronization
  */
 
 import { Project, StoryData, APISettings, DrawingSettings, ExportSettings } from '../types';
+import { xorEncrypt, xorDecrypt } from './encryption';
 
 // Storage configuration
 const STORAGE_CONFIG = {
@@ -395,9 +397,12 @@ class PersistentStorageManager {
    * Settings Storage Operations (localStorage for fast access)
    */
   saveAPISettings(settings: APISettings): void {
+    const secret = import.meta.env.VITE_ENCRYPTION_SECRET as string | undefined;
+    const data = JSON.stringify(settings);
+    const toStore = secret ? xorEncrypt(data, secret) : data;
     localStorage.setItem(
       STORAGE_CONFIG.localStorageKeys.apiSettings,
-      JSON.stringify(settings)
+      toStore
     );
     this.addToSyncQueue({
       id: 'api_settings',
@@ -411,8 +416,19 @@ class PersistentStorageManager {
 
   getAPISettings(): APISettings | null {
     try {
-      const settings = localStorage.getItem(STORAGE_CONFIG.localStorageKeys.apiSettings);
-      return settings ? JSON.parse(settings) : null;
+      const stored = localStorage.getItem(STORAGE_CONFIG.localStorageKeys.apiSettings);
+      if (!stored) return null;
+      let data = stored;
+      const secret = import.meta.env.VITE_ENCRYPTION_SECRET as string | undefined;
+      if (secret) {
+        try {
+          data = xorDecrypt(stored, secret);
+        } catch {
+          // Fallback for unencrypted data
+          data = stored;
+        }
+      }
+      return JSON.parse(data);
     } catch (error) {
       console.error('Error getting API settings:', error);
       return null;
