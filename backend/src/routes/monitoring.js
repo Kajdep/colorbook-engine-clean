@@ -1,6 +1,7 @@
 const express = require('express');
 const os = require('os');
 const { Pool } = require('pg');
+const performanceTracker = require('../services/performanceTracker');
 const router = express.Router();
 
 // Database connection for health checks
@@ -233,6 +234,22 @@ router.get('/errors', async (req, res) => {
     console.error('Error summary failed:', error);
     res.status(500).json({
       error: 'Failed to get error summary',
+      message: error.message
+    });
+  }
+});
+
+// Performance metrics for specific endpoints
+router.get('/performance', (req, res) => {
+  try {
+    res.json({
+      timestamp: new Date().toISOString(),
+      metrics: performanceTracker.getMetrics()
+    });
+  } catch (error) {
+    console.error('Performance metrics failed:', error);
+    res.status(500).json({
+      error: 'Failed to get performance metrics',
       message: error.message
     });
   }
