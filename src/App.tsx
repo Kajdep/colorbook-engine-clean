@@ -6,6 +6,7 @@ import HelpCenter from './components/HelpCenter';
 import NotificationContainer from './components/NotificationContainer';
 import Sidebar from './components/Sidebar';
 import StoryGenerator from './components/StoryGenerator';
+import ImageGenerator from './components/ImageGenerator';
 import { useAppStore } from './store/useAppStore';
 import './App.css';
 
@@ -44,12 +45,7 @@ function App() {
               {currentSection === 'dashboard' && <Dashboard onOpenStorage={() => {}} />}
               {currentSection === 'api-settings' && <APISettings />}
               {currentSection === 'story-generator' && <StoryGenerator />}
-              {currentSection === 'image-generator' && (
-                <div className="text-center p-10">
-                  <h2 className="text-2xl font-bold text-gray-600 mb-4">Image Generator</h2>
-                  <p className="text-gray-500">This feature is coming soon!</p>
-                </div>
-              )}
+              {currentSection === 'image-generator' && <ImageGenerator />}
               {currentSection === 'cloud-upload' && (
                 <div className="text-center p-10">
                   <h2 className="text-2xl font-bold text-gray-600 mb-4">Cloud Upload</h2>

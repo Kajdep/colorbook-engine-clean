@@ -14,10 +14,6 @@ Implement real analytics and error tracking in `backend/src/routes/monitoring.js
 Configure Stripe API keys, database connections, and required environment variables as noted in `PRODUCTION_READINESS.md`.
 :::
 
-:::task-stub{title="Domain and SSL Setup"}
-Configure a production domain and obtain valid SSL certificates.
-:::
-
 :::task-stub{title="Comprehensive Testing"}
 Expand the current test suite to cover all API endpoints and user workflows.
 :::

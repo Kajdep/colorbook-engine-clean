@@ -30,7 +30,9 @@
     "stripe": "^13.11.0",
     "nodemailer": "^6.9.7",
     "crypto": "^1.0.1",
-    "aws-sdk": "^2.1478.0"
+    "aws-sdk": "^2.1478.0",
+    "axios": "^1.4.0",
+    "@sentry/node": "^7.89.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.1",

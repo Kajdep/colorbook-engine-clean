@@ -4,6 +4,7 @@
  */
 
 import { Project, StoryData, APISettings, DrawingSettings, ExportSettings } from '../types';
+import backendAPI from './backendAPI';
 
 // Storage configuration
 const STORAGE_CONFIG = {
@@ -513,21 +514,58 @@ class PersistentStorageManager {
     this.saveSyncQueue();
     this.syncInProgress = false;
 
+    if (processedItems.length > 0) {
+      localStorage.setItem(
+        STORAGE_CONFIG.localStorageKeys.lastSync,
+        new Date().toISOString()
+      );
+    }
+
     console.log('Sync queue processed. Remaining items:', this.syncQueue.length);
   }
 
   private async syncToBackend(item: SyncQueueItem): Promise<void> {
-    // Placeholder for backend sync implementation
-    // This would make actual API calls to your backend
-    console.log('Syncing to backend:', item.type, item.action, item.id);
-    
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
-    // Here you would implement actual backend API calls:
-    // - POST/PUT for create/update operations
-    // - DELETE for delete operations
-    // - Handle authentication and error responses
+    const baseUrl = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001/api';
+    const token = backendAPI.getAccessToken();
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json'
+    };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    let url = '';
+    let options: RequestInit = { method: 'GET', headers };
+
+    switch (item.type) {
+      case 'project':
+        if (item.action === 'delete') {
+          url = `${baseUrl}/projects/${item.id}`;
+          options.method = 'DELETE';
+        } else if (item.action === 'create') {
+          url = `${baseUrl}/projects`;
+          options.method = 'POST';
+          options.body = JSON.stringify(item.data);
+        } else {
+          url = `${baseUrl}/projects/${item.id}`;
+          options.method = 'PUT';
+          options.body = JSON.stringify(item.data);
+        }
+        break;
+      default:
+        // Unsupported type for backend sync
+        return;
+    }
+
+    const response = await fetch(url, options);
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.error || data.message || 'Sync failed');
+    }
+
+    await this.updateSyncStatus(item.type, item.id, 'synced');
   }
 
   /**
@@ -670,6 +708,52 @@ class PersistentStorageManager {
 
   private generateId(): string {
     return Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
+  }
+
+  private getStoreForType(type: string): string | null {
+    switch (type) {
+      case 'project':
+        return STORAGE_CONFIG.stores.projects;
+      case 'story':
+        return STORAGE_CONFIG.stores.stories;
+      case 'image':
+        return STORAGE_CONFIG.stores.images;
+      case 'drawing':
+        return STORAGE_CONFIG.stores.drawings;
+      default:
+        return null;
+    }
+  }
+
+  private async updateSyncStatus(
+    type: string,
+    id: string,
+    status: 'local' | 'synced' | 'conflict' | 'syncing'
+  ): Promise<void> {
+    const storeName = this.getStoreForType(type);
+    if (!storeName) return;
+
+    try {
+      const record = await this.dbOperation<any>(
+        storeName,
+        'readonly',
+        (store) => store.get(id)
+      );
+      if (record) {
+        record.metadata = {
+          ...record.metadata,
+          syncStatus: status,
+          updatedAt: new Date().toISOString(),
+        };
+        await this.dbOperation(
+          storeName,
+          'readwrite',
+          (store) => store.put(record)
+        );
+      }
+    } catch (error) {
+      console.error('Failed to update sync status:', error);
+    }
   }
 
   /**
