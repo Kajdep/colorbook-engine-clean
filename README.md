@@ -1,12 +1,14 @@
-# 🎨 ColorBook Engine - Complete Edition
+# 🎨 ColorBook Engine - Work in Progress Edition
 
 **Professional AI-Powered Coloring Book Creation Platform**
 
 A comprehensive tool for creating professional-quality coloring books with AI-generated stories, images, and publishing-ready PDFs.
 
+**Note:** This project is still under active development and several features remain unfinished. See [OPEN_TASKS.md](OPEN_TASKS.md) for details.
+
 ## 🌟 Features
 
-### ✅ FULLY FUNCTIONAL
+### ✅ Major Features Implemented
 - **🎨 Story Generation**: AI-powered stories with customizable themes, characters, and image prompts
 - **📁 Project Management**: Create, organize, duplicate, and manage multiple coloring book projects
 - **🖼️ Image Generation**: Real AI APIs (OpenAI, Stability AI, Replicate) with advanced SVG fallbacks
@@ -17,7 +19,7 @@ A comprehensive tool for creating professional-quality coloring books with AI-ge
 - **🔔 Notifications**: Real-time feedback system with toast notifications
 - **💾 Persistent Storage**: Manage and back up all projects with IndexedDB and
   local backups
-- **📱 Responsive**: Works perfectly on desktop, tablet, and mobile devices
+- **📱 Responsive**: Optimized for desktop, tablet, and mobile devices
 
 ### 🎯 AI Integration
 - **OpenRouter API**: GPT-4, Claude, Llama for story generation
@@ -124,7 +126,7 @@ src/
 2. **Image Generation** - Real AI APIs + 10 SVG fallback designs
 3. **Drawing Canvas** - Professional tools with brushes, colors, templates
 4. **PDF Export** - Print-ready PDFs with proper formatting
-5. **KDP Compliance** - Complete publishing readiness checker
+5. **KDP Compliance** - Comprehensive publishing readiness checker
 6. **Project Management** - Create, organize, duplicate, delete projects
 7. **Settings** - Full API configuration system
 8. **Notifications** - Real-time feedback system
