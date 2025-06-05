@@ -3,6 +3,8 @@ export interface Project {
   title: string;
   description?: string;
   pages: Page[];
+  currentStory?: StoryData;
+  drawings?: any[];
   metadata: ProjectMetadata;
   createdAt: string;
   updatedAt: string;
@@ -33,6 +35,13 @@ export interface ProjectMetadata {
   totalPages?: number;
   targetWordsPerPage?: number;
   generatedAt?: string;
+  author?: string;
+  language?: string;
+  originalLanguage?: string;
+  characterReferences?: any[];
+  styleSettings?: any;
+  marketAnalysis?: any;
+  optimizationApplied?: boolean;
 }
 
 export interface StoryPage {
@@ -45,6 +54,7 @@ export interface StoryPage {
 }
 
 export interface StoryData {
+  id?: string;
   pages: StoryPage[];
   metadata: ProjectMetadata;
 }

@@ -19,7 +19,7 @@ interface ComplianceResult {
 }
 
 const KDPCompliance: React.FC = () => {
-  const { projects, currentProject, setCurrentProject } = useAppStore();
+  const { projects } = useAppStore();
   const [selectedProject, setSelectedProject] = useState<string>('');
   const [complianceResults, setComplianceResults] = useState<ComplianceResult[]>([]);
   const [isChecking, setIsChecking] = useState(false);
@@ -34,7 +34,7 @@ const KDPCompliance: React.FC = () => {
       category: 'content',
       severity: 'error',
       check: (project) => {
-        const pageCount = project.story?.pages?.length || 0;
+        const pageCount = project.pages?.length || 0;
         const totalPages = pageCount * 2; // Story + coloring pages
         return {
           passed: totalPages >= 24,
@@ -56,11 +56,11 @@ const KDPCompliance: React.FC = () => {
       category: 'content',
       severity: 'error',
       check: (project) => {
-        const story = project.story;
-        if (!story) return { passed: false, message: '✗ No story content to check' };
+        const pages = project.pages;
+        if (!pages || pages.length === 0) return { passed: false, message: '✗ No story content to check' };
         
         // Check for inappropriate content keywords
-        const content = JSON.stringify(story).toLowerCase();
+        const content = JSON.stringify(pages).toLowerCase();
         const flaggedWords = ['violence', 'weapon', 'inappropriate', 'adult'];
         const found = flaggedWords.filter(word => content.includes(word));
         
@@ -87,7 +87,7 @@ const KDPCompliance: React.FC = () => {
       severity: 'warning',
       check: (project) => {
         // Simulate image resolution check
-        const hasImages = project.story?.pages?.some(page => page.imagePrompt);
+        const hasImages = project.pages?.some((_page: any) => (_page as any).imagePrompt);
         return {
           passed: true, // Assume SVG images are scalable
           message: hasImages 
@@ -141,7 +141,7 @@ const KDPCompliance: React.FC = () => {
       category: 'format',
       severity: 'info',
       check: (project) => {
-        const pageCount = (project.story?.pages?.length || 0) * 2;
+        const pageCount = (project.pages?.length || 0) * 2;
         const spineWidth = Math.max(0.06, pageCount * 0.0025); // Approximate calculation
         return {
           passed: true,

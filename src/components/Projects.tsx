@@ -1,17 +1,15 @@
 import React, { useState } from 'react';
-import { 
-  Plus, 
-  FolderOpen, 
-  BookOpen, 
-  Palette, 
+import {
+  Plus,
+  FolderOpen,
+  BookOpen,
   MoreHorizontal,
-  Edit,
   Copy,
   Trash2,
   Calendar
 } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
-import { formatDate, generateId } from '../utils/helpers';
+import { formatDate } from '../utils/helpers';
 import { Project } from '../types';
 
 const Projects: React.FC = () => {

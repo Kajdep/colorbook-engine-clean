@@ -4,14 +4,11 @@ import {
   Palette, 
   FileText, 
   FolderOpen, 
-  CheckCircle, 
+  CheckCircle,
   Settings,
   TrendingUp,
-  Users,
-  Clock,
   Database,
   HardDrive,
-  Cloud,
   Wifi,
   WifiOff
 } from 'lucide-react';

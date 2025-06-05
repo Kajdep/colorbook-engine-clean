@@ -68,7 +68,7 @@ const PDFExport: React.FC = () => {
       return errors;
     }
 
-    const storyPages = project.story?.pages?.length || 0;
+    const storyPages = project.pages?.length || 0;
     const totalPages = (settings.includeStoryPages ? storyPages : 0) + 
                       (settings.includeColoringPages ? storyPages : 0) +
                       (settings.includeCover ? 1 : 0) +
@@ -123,8 +123,8 @@ const PDFExport: React.FC = () => {
       });
     }
 
-    if (project.story?.pages) {
-      project.story.pages.forEach((storyPage, index) => {
+    if (project.pages) {
+      project.pages.forEach((storyPage, _index) => {
         if (settings.includeStoryPages) {
           pages.push({ type: 'story', pageNumber: pageNumber++, content: storyPage });
         }
@@ -197,8 +197,7 @@ const PDFExport: React.FC = () => {
         title: project.title,
         author: project.metadata?.author || 'ColorBook Engine',
         subject: 'Professional Coloring Book',
-        creator: 'ColorBook Engine PDF Export',
-        producer: 'ColorBook Engine'
+        creator: 'ColorBook Engine PDF Export'
       });
 
       for (let i = 0; i < previewPages.length; i++) {

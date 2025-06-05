@@ -128,7 +128,7 @@ const APISettings: React.FC = () => {
     setIsTestingConnection(true);
     try {
       googleImagesAI.setCredentials(formData.googleApiKey, formData.googleProjectId);
-      const result = await googleImagesAI.testConnection('imagegeneration@006'); // Test with a common Imagen 2 model
+      const result = await googleImagesAI.testConnection('imagen-2');
       if (result.success) {
         addNotification({ type: 'success', message: `Google AI connection successful! ✅ (${result.responseTime}ms)` });
       } else {
@@ -294,12 +294,24 @@ const APISettings: React.FC = () => {
 
                 <div>
                   <label htmlFor="imageModel" className="block text-sm font-medium text-gray-700 mb-2">Image Model</label>
-                  <select id="imageModel" value={formData.imageModel} onChange={(e) => handleInputChange('imageModel', e.target.value)} className="form-input" disabled={formData.imageService !== 'none' && !formData.imageService.startsWith('google-') && imageModels.length === 0} aria-label="Select Image Model">
+                  <select
+                    id="imageModel"
+                    value={formData.imageModel}
+                    onChange={(e) => handleInputChange('imageModel', e.target.value)}
+                    className="form-input"
+                    disabled={
+                      (formData.imageService === 'openai' ||
+                        formData.imageService === 'stabilityai' ||
+                        formData.imageService === 'replicate') &&
+                      imageModels.length === 0
+                    }
+                    aria-label="Select Image Model"
+                  >
                     {formData.imageService === 'google-imagen2' && (
-                      <option value="imagegeneration@006">Google Imagen 2 (imagegeneration@006)</option>
+                      <option value="imagen-2">Google Imagen 2</option>
                     )}
                     {formData.imageService === 'google-vertex' && (
-                      <option value="imagegeneration@005">Vertex AI Imagen (imagegeneration@005)</option> 
+                      <option value="vertex-ai">Vertex AI Imagen</option>
                     )}
                     {/* <option value=\"imagegeneration@002\">Imagen v1 (Legacy - imagegeneration@002)</option> */}
 
@@ -318,15 +330,17 @@ const APISettings: React.FC = () => {
                     {formData.imageService === 'replicate' && imageModels.length === 0 && (
                       <><option value="" disabled>{formData.imageApiKey ? 'Test Key to load models' : 'Enter API key first'}</option><option value="stability-ai/sdxl">SDXL (Replicate - Fallback)</option></>
                     )}
-                    {(formData.imageService === 'none' || formData.imageService === undefined) && (
-                      <option value="">N/A - No image service selected</option>
-                    )}
                   </select>
                   <p className="text-xs text-gray-500 mt-1">
-                    { (formData.imageService && formData.imageService !== 'none' && !formData.imageService.startsWith('google-')) ? 
-                        (imageModels.length > 0 ? 'Select a model.' : 'Models will load after API key test.') : 
-                        (formData.imageService && formData.imageService.startsWith('google-') ? 'Select a Google model or ensure Project ID/Key are correct.' : 'Select an image service first.')
-                    }
+                    {formData.imageService === 'openai' ||
+                    formData.imageService === 'stabilityai' ||
+                    formData.imageService === 'replicate'
+                      ? imageModels.length > 0
+                        ? 'Select a model.'
+                        : 'Models will load after API key test.'
+                      : formData.imageService && formData.imageService.startsWith('google-')
+                      ? 'Select a Google model or ensure Project ID/Key are correct.'
+                      : 'Select an image service first.'}
                   </p>
                 </div>
               </>

@@ -18,7 +18,7 @@ export interface StoryGenerationParams {
 }
 
 export class AIService {
-  private apiSettings: APISettings;
+  protected apiSettings: APISettings;
 
   constructor(apiSettings: APISettings) {
     this.apiSettings = apiSettings;

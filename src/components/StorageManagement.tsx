@@ -15,8 +15,7 @@ const StorageManagement: React.FC<StorageManagementProps> = ({ isOpen, onClose }
     clearAllData,
     exportAllData,
     importData,
-    forceSyncAll,
-    addNotification
+    forceSyncAll
   } = useAppStore();
 
   const [isExporting, setIsExporting] = useState(false);

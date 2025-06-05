@@ -14,7 +14,7 @@ const CanvaExport: React.FC<CanvaExportProps> = ({ isOpen, onClose, projectId })
   const [selectedProject, setSelectedProject] = useState(projectId || '');
   const [exportFormat, setExportFormat] = useState<'json' | 'package'>('package');
   const [template, setTemplate] = useState('coloring-book');
-  const [dimensions, setDimensions] = useState({ width: 8.5, height: 11, unit: 'in' as const });
+  const [dimensions, setDimensions] = useState<{ width: number; height: number; unit: 'in' | 'cm' | 'px' }>({ width: 8.5, height: 11, unit: 'in' });
   const [isExporting, setIsExporting] = useState(false);
   const [canvaApiKey, setCanvaApiKey] = useState('');
   const [connectionStatus, setConnectionStatus] = useState<'testing' | 'success' | 'error' | null>(null);
@@ -118,7 +118,7 @@ const CanvaExport: React.FC<CanvaExportProps> = ({ isOpen, onClose, projectId })
       }
 
       if (result.success) {
-        if (result.downloadUrl) {
+        if ('downloadUrl' in result && result.downloadUrl) {
           const link = document.createElement('a');
           link.href = result.downloadUrl;
           link.download = `${project.title}-canva-export.${exportFormat === 'package' ? 'zip' : 'json'}`;

@@ -34,7 +34,6 @@ interface CanvaExportOptions {
 
 class CanvaIntegrationService {
   private apiKey: string | null = null;
-  private baseUrl = 'https://api.canva.com/v1';
 
   constructor() {
     this.loadApiKey();
@@ -245,7 +244,7 @@ class CanvaIntegrationService {
       const downloadUrl = URL.createObjectURL(blob);
 
       // Also create a Canva import guide
-      const importGuide = this.generateCanvaImportGuide(template);
+      this.generateCanvaImportGuide(template);
       
       return {
         success: true,

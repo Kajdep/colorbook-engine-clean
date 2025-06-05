@@ -42,7 +42,7 @@ class AdvancedPublishingService {
       // Generate pages with proper margins
       options.pages.forEach((page, index) => {
         if (index > 0) pdf.addPage();
-        this.addKDPPage(pdf, page, index);
+        this.addKDPPage(pdf, page);
       });
 
       const blob = pdf.output('blob');
@@ -99,7 +99,7 @@ class AdvancedPublishingService {
     });
   }
 
-  private addKDPPage(pdf: any, page: any, index: number) {
+  private addKDPPage(pdf: any, page: any) {
     const safeMargin = 0.75; // KDP safe margin
     const contentWidth = 8.5 - (safeMargin * 2);
     const contentHeight = 11 - (safeMargin * 2);
@@ -109,7 +109,7 @@ class AdvancedPublishingService {
     if (page.type === 'cover') {
       this.addCoverPage(pdf, page, safeMargin, contentWidth);
     } else if (page.type === 'story') {
-      this.addStoryPage(pdf, page, safeMargin, contentWidth, contentHeight);
+      this.addStoryPage(pdf, page, safeMargin, contentWidth);
     } else if (page.type === 'coloring') {
       this.addColoringPage(pdf, page, safeMargin, contentWidth, contentHeight);
     }
@@ -127,7 +127,7 @@ class AdvancedPublishingService {
     pdf.text(titleLines, margin, startY, { align: 'center' });
   }
 
-  private addStoryPage(pdf: any, page: any, margin: number, width: number, height: number) {
+  private addStoryPage(pdf: any, page: any, margin: number, width: number) {
     pdf.setFontSize(12);
     pdf.setFont('helvetica', 'normal');
     
