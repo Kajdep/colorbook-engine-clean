@@ -7,6 +7,7 @@ import NotificationContainer from './components/NotificationContainer';
 import Sidebar from './components/Sidebar';
 import StoryGenerator from './components/StoryGenerator';
 import ImageGenerator from './components/ImageGenerator';
+import Projects from './components/Projects';
 import { useAppStore } from './store/useAppStore';
 import './App.css';
 
@@ -43,6 +44,7 @@ function App() {
             )}
             <div className="p-6 overflow-auto flex-grow">
               {currentSection === 'dashboard' && <Dashboard onOpenStorage={() => {}} />}
+              {currentSection === 'projects' && <Projects />}
               {currentSection === 'api-settings' && <APISettings />}
               {currentSection === 'story-generator' && <StoryGenerator />}
               {currentSection === 'image-generator' && <ImageGenerator />}
