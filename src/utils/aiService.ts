@@ -1,6 +1,7 @@
-import { APISettings, StoryData } from '../types';
+import { APISettings, ImageService, StoryData } from '../types';
 import { sleep } from './helpers';
 import { googleImagesAI } from './googleImagesAI';
+import { persistentStorage } from './persistentStorage';
 
 export interface StoryGenerationParams {
   theme: string;
@@ -175,43 +176,98 @@ IMPORTANT: Each IMAGE_PROMPT must be detailed enough to generate a proper colori
   }
 
   async generateImage(prompt: string): Promise<string> {
-    const service = this.apiSettings.imageService;
+    const primary = this.apiSettings.imageService;
 
-    // Determine which credentials are required based on provider
-    if (service === 'none') {
-      return this.generatePlaceholderColoringPage(prompt);
+    const providers: ImageService[] = [];
+
+    if (primary && primary !== 'none') {
+      providers.push(primary);
     }
 
-    if (service.startsWith('google-')) {
-      if (!this.apiSettings.googleApiKey || !this.apiSettings.googleProjectId) {
-        throw new Error('Google AI credentials not configured');
+    const allProviders: ImageService[] = [
+      'openai',
+      'stabilityai',
+      'replicate',
+      'google-imagen2',
+      'google-imagen',
+      'google-vertex'
+    ];
+
+    for (const p of allProviders) {
+      if (p !== primary) {
+        if (p.startsWith('google-')) {
+          if (this.apiSettings.googleApiKey && this.apiSettings.googleProjectId) {
+            providers.push(p);
+          }
+        } else if (this.apiSettings.imageApiKey) {
+          providers.push(p);
+        }
       }
-    } else if (!this.apiSettings.imageApiKey) {
-      // Non-Google providers require an image API key
+    }
+
+    if (providers.length === 0) {
       return this.generatePlaceholderColoringPage(prompt);
     }
 
-    try {
-      switch (this.apiSettings.imageService) {
-        case 'openai':
-          return await this.generateWithOpenAI(prompt);
-        case 'stabilityai':
-          return await this.generateWithStabilityAI(prompt);
-        case 'replicate':
-          return await this.generateWithReplicate(prompt);
-        case 'google-imagen':
-          return await this.generateWithGoogleImagen(prompt);
-        case 'google-imagen2':
-          return await this.generateWithGoogleImagen2(prompt);
-        case 'google-vertex':
-          return await this.generateWithGoogleVertex(prompt);
-        default:
-          throw new Error('Unsupported image service');
+    for (const provider of providers) {
+      if (!(await this.ensureCredentials(provider))) {
+        continue;
       }
-    } catch (error) {
-      console.error('Image generation failed, using placeholder:', error);
-      return this.generatePlaceholderColoringPage(prompt);
+      try {
+        switch (provider) {
+          case 'openai':
+            return await this.generateWithOpenAI(prompt);
+          case 'stabilityai':
+            return await this.generateWithStabilityAI(prompt);
+          case 'replicate':
+            return await this.generateWithReplicate(prompt);
+          case 'google-imagen':
+            return await this.generateWithGoogleImagen(prompt);
+          case 'google-imagen2':
+            return await this.generateWithGoogleImagen2(prompt);
+          case 'google-vertex':
+            return await this.generateWithGoogleVertex(prompt);
+        }
+      } catch (error) {
+        console.warn(`Provider ${provider} failed:`, error);
+      }
     }
+
+    console.error('All image providers failed, using placeholder');
+    return this.generatePlaceholderColoringPage(prompt);
+  }
+
+  private async ensureCredentials(provider: ImageService): Promise<boolean> {
+    if (provider.startsWith('google-')) {
+      if (this.apiSettings.googleApiKey && this.apiSettings.googleProjectId) {
+        return true;
+      }
+
+      const apiKey = window.prompt('Enter Google AI API key');
+      const projectId = apiKey ? window.prompt('Enter Google Cloud Project ID') : null;
+      if (apiKey && projectId) {
+        this.apiSettings.googleApiKey = apiKey;
+        this.apiSettings.googleProjectId = projectId;
+        googleImagesAI.setCredentials(apiKey, projectId);
+        persistentStorage.saveAPISettings(this.apiSettings);
+        return true;
+      }
+
+      return false;
+    }
+
+    if (this.apiSettings.imageApiKey) {
+      return true;
+    }
+
+    const key = window.prompt(`Enter API key for ${provider}`);
+    if (key) {
+      this.apiSettings.imageApiKey = key;
+      persistentStorage.saveAPISettings(this.apiSettings);
+      return true;
+    }
+
+    return false;
   }
 
   // Google AI image generation methods
