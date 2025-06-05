@@ -77,6 +77,7 @@ const StoryGenerator: React.FC = () => {
         type: 'warning',
         message: 'Please configure your API key in API Settings first'
       });
+      // Redirect the user to the settings page to enter their API key
       setCurrentSection('api-settings');
       return;
     }
