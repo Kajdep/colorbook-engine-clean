@@ -144,6 +144,15 @@ cd backend
 ```
 Backups are stored in the `backups` directory unless another path is provided.
 
+### Rate Limiting
+The backend's request limits can be configured with two environment variables:
+
+- `RATE_LIMIT_POINTS` – maximum number of requests allowed
+- `RATE_LIMIT_DURATION` – time window in seconds
+
+Update these values in `.env` or your production configuration to tune API rate
+limits for your deployment.
+
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
