@@ -114,7 +114,18 @@ export interface Notification {
   duration?: number;
 }
 
-export type Section = 'dashboard' | 'projects' | 'story' | 'canvas' | 'pdf' | 'kdp' | 'settings' | 'help' | 'api-settings' | 'story-generator' | 'image-generator' | 'cloud-upload' | 'account';
+export type Section =
+  | 'dashboard'
+  | 'projects'
+  | 'canvas'
+  | 'pdf'
+  | 'kdp'
+  | 'help'
+  | 'api-settings'
+  | 'story-generator'
+  | 'image-generator'
+  | 'cloud-upload'
+  | 'account';
 
 // Define ImageService type based on APISettings
 export type ImageService = APISettings['imageService'];
