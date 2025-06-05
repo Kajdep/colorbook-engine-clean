@@ -46,6 +46,7 @@ interface SyncQueueItem {
   data?: any;
   timestamp: string;
   retryCount: number;
+  status: 'pending' | 'syncing' | 'synced' | 'failed';
 }
 
 class PersistentStorageManager {
@@ -150,10 +151,11 @@ class PersistentStorageManager {
    * Project Storage Operations
    */
   async saveProject(project: Project): Promise<void> {
-    const projectWithMetadata = {
-      ...project,
-      metadata: this.createMetadata(project.id, 'project')
-    };
+    const existing = await this.getProject(project.id);
+    const action = existing ? 'update' : 'create';
+    const projectWithMetadata = existing
+      ? { ...existing, ...project, metadata: { ...existing.metadata, updatedAt: new Date().toISOString() } }
+      : { ...project, metadata: this.createMetadata(project.id, 'project') };
 
     await this.dbOperation(
       STORAGE_CONFIG.stores.projects,
@@ -161,14 +163,14 @@ class PersistentStorageManager {
       (store) => store.put(projectWithMetadata)
     );
 
-    // Add to sync queue
     this.addToSyncQueue({
       id: project.id,
-      action: 'update',
+      action,
       type: 'project',
       data: projectWithMetadata,
       timestamp: new Date().toISOString(),
-      retryCount: 0
+      retryCount: 0,
+      status: 'pending'
     });
 
     console.log('Project saved to IndexedDB:', project.title);
@@ -220,7 +222,8 @@ class PersistentStorageManager {
       action: 'delete',
       type: 'project',
       timestamp: new Date().toISOString(),
-      retryCount: 0
+      retryCount: 0,
+      status: 'pending'
     });
 
     console.log('Project deleted from IndexedDB:', id);
@@ -230,11 +233,18 @@ class PersistentStorageManager {
    * Story Storage Operations
    */
   async saveStory(story: StoryData, projectId: string): Promise<void> {
-    const storyWithMetadata = {
-      ...story,
-      projectId,
-      metadata: this.createMetadata(story.id || this.generateId(), 'story')
-    };
+    const existing = story.id
+      ? await this.dbOperation<any>(
+          STORAGE_CONFIG.stores.stories,
+          'readonly',
+          (store) => store.get(story.id!)
+        )
+      : null;
+    const id = story.id || this.generateId();
+    const action = existing ? 'update' : 'create';
+    const storyWithMetadata = existing
+      ? { ...existing, ...story, id, projectId, metadata: { ...existing.metadata, updatedAt: new Date().toISOString() } }
+      : { ...story, id, projectId, metadata: this.createMetadata(id, 'story') };
 
     await this.dbOperation(
       STORAGE_CONFIG.stores.stories,
@@ -244,11 +254,12 @@ class PersistentStorageManager {
 
     this.addToSyncQueue({
       id: storyWithMetadata.id!,
-      action: 'update',
+      action,
       type: 'story',
       data: storyWithMetadata,
       timestamp: new Date().toISOString(),
-      retryCount: 0
+      retryCount: 0,
+      status: 'pending'
     });
   }
 
@@ -310,7 +321,8 @@ class PersistentStorageManager {
       type: 'image',
       data: imageWithMetadata,
       timestamp: new Date().toISOString(),
-      retryCount: 0
+      retryCount: 0,
+      status: 'pending'
     });
   }
 
@@ -406,7 +418,8 @@ class PersistentStorageManager {
       type: 'settings',
       data: settings,
       timestamp: new Date().toISOString(),
-      retryCount: 0
+      retryCount: 0,
+      status: 'pending'
     });
   }
 
@@ -458,7 +471,8 @@ class PersistentStorageManager {
    * Sync Queue Management
    */
   private addToSyncQueue(item: SyncQueueItem): void {
-    this.syncQueue.push(item);
+    const queueItem: SyncQueueItem = { ...item, status: item.status || 'pending' };
+    this.syncQueue.push(queueItem);
     this.saveSyncQueue();
     
     if (this.isOnline && !this.syncInProgress) {
@@ -476,7 +490,10 @@ class PersistentStorageManager {
   private loadSyncQueue(): void {
     try {
       const queue = localStorage.getItem(STORAGE_CONFIG.localStorageKeys.syncQueue);
-      this.syncQueue = queue ? JSON.parse(queue) : [];
+      this.syncQueue = queue ? JSON.parse(queue).map((item: any) => ({
+        ...item,
+        status: item.status || 'pending'
+      })) : [];
     } catch (error) {
       console.error('Error loading sync queue:', error);
       this.syncQueue = [];
@@ -495,13 +512,16 @@ class PersistentStorageManager {
     
     for (const item of this.syncQueue) {
       try {
-        // Here you would implement actual backend sync
+        item.status = 'syncing';
+        this.saveSyncQueue();
         await this.syncToBackend(item);
+        item.status = 'synced';
         processedItems.push(item.id);
       } catch (error) {
         console.error('Sync failed for item:', item.id, error);
         item.retryCount++;
-        
+        item.status = 'failed';
+
         // Remove items that have failed too many times
         if (item.retryCount > 3) {
           processedItems.push(item.id);
