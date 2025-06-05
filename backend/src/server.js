@@ -31,8 +31,8 @@ const PORT = process.env.PORT || 3001;
 // Rate limiting
 const rateLimiter = new rateLimit.RateLimiterMemory({
   keyStore: new Map(),
-  points: 100, // Number of requests
-  duration: 60, // Per 60 seconds
+  points: parseInt(process.env.RATE_LIMIT_POINTS || '100', 10),
+  duration: parseInt(process.env.RATE_LIMIT_DURATION || '60', 10),
 });
 
 const rateLimitMiddleware = async (req, res, next) => {
