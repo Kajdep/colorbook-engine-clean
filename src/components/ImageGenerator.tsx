@@ -40,7 +40,13 @@ const ImageGenerator: React.FC = () => {
       addNotification({ type: 'warning', message: 'Enter a prompt first' });
       return;
     }
-    if (!apiSettings.imageApiKey && apiSettings.imageService !== 'none') {
+
+    if (apiSettings.imageService.startsWith('google-')) {
+      if (!apiSettings.googleApiKey || !apiSettings.googleProjectId) {
+        addNotification({ type: 'warning', message: 'Configure Google AI credentials first' });
+        return;
+      }
+    } else if (!apiSettings.imageApiKey && apiSettings.imageService !== 'none') {
       addNotification({ type: 'warning', message: 'Configure image API key first' });
       return;
     }
