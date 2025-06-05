@@ -114,9 +114,10 @@ src/
 └── styles/              # CSS and styling
 ```
 
-## 🎉 MISSION COMPLETE! 
+## 🚧 Current Status
 
-**ColorBook Engine is now 100% FUNCTIONAL!**
+**ColorBook Engine is largely functional, but some work remains.** See
+[OPEN_TASKS.md](OPEN_TASKS.md) for outstanding items.
 
 ### ✅ What's Working:
 1. **Story Generation** - Full AI integration with OpenRouter
@@ -135,7 +136,8 @@ npm install
 npm run dev
 ```
 
-**Your professional coloring book creation tool is complete and ready for business!** 🎨✨
+**The tool is usable for experimenting today, but further development and
+testing are recommended before relying on it for production work.** 🎨
 
 ### Database Backups
 Use the `backend/backup.sh` script to create PostgreSQL dumps. Ensure `.env` contains your database credentials and run:
@@ -162,4 +164,4 @@ This project is licensed under the [MIT License](LICENSE).
 
 ---
 
-*From messy prototype to production-ready application - transformation complete!*"# colorbook-engine-clean"
+*From messy prototype to a nearly production-ready application – transformation well underway!* "# colorbook-engine-clean"
