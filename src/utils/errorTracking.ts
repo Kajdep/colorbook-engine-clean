@@ -102,7 +102,7 @@ class ErrorTracker {
 
   private async sendToBackend(errorEvent: ErrorEvent) {
     try {
-      await fetch('/api/errors', {
+      await fetch('/api/monitoring/client-error', { // Updated endpoint
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -55,6 +55,17 @@ class PersistentStorageManager {
   private syncQueue: SyncQueueItem[] = [];
   private syncInProgress: boolean = false;
 
+  // Helper function to convert base64 to Blob
+  private base64ToBlob(base64: string, mimeType: string = ''): Blob {
+    const byteCharacters = atob(base64.split(',')[1] || base64); // Handle data URI prefix
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    return new Blob([byteArray], { type: mimeType });
+  }
+
   constructor() {
     // Monitor online status
     window.addEventListener('online', () => {
@@ -569,8 +580,46 @@ class PersistentStorageManager {
             response = await backendAPI.updateStory(item.id, item.data);
           }
           break;
+        case 'image':
+          if (item.action === 'create' || item.action === 'update') {
+            if (!item.data || !item.data.data || !item.data.id || !item.data.projectId) {
+              throw new Error('Missing image data for sync');
+            }
+            const mimeType = item.data.data.substring(5, item.data.data.indexOf(';')) || 'image/png';
+            const blob = this.base64ToBlob(item.data.data, mimeType);
+            // Infer extension from mimeType or default to .png
+            let extension = mimeType.split('/')[1] || 'png';
+            if (extension === 'svg+xml') extension = 'svg'; // common case for svg
+            const fileName = `${item.data.id}.${extension}`;
+            const imageFile = new File([blob], fileName, { type: mimeType });
+
+            response = await backendAPI.uploadImage(imageFile, {
+              projectId: item.data.projectId,
+              id: item.data.id,
+              type: item.data.type,
+              ...item.data.metadata // Pass any other metadata
+            });
+          } else if (item.action === 'delete') {
+            response = await backendAPI.deleteImage(item.id);
+          }
+          break;
+        case 'drawing':
+          if (item.action === 'create') {
+            response = await backendAPI.saveDrawing(item.data);
+          } else if (item.action === 'update') {
+            response = await backendAPI.updateDrawing(item.id, item.data);
+          } else if (item.action === 'delete') {
+            response = await backendAPI.deleteDrawing(item.id);
+          }
+          break;
+        case 'settings': // For APISettings
+          if (item.action === 'update' && item.id === 'api_settings') {
+            response = await backendAPI.updateUserSettings(item.data);
+          }
+          break;
         default:
-          return;
+          console.warn('Unknown item type for sync:', item.type);
+          return; // Don't attempt to process unknown types
       }
 
       if (response?.error) {

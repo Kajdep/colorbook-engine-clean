@@ -355,6 +355,18 @@ class BackendAPIClient {
     return this.request('/exports');
   }
 
+  // User Settings methods
+  async updateUserSettings(settingsData: any): Promise<APIResponse<{ settings: any }>> {
+    return this.request('/users/me/settings', {
+      method: 'PUT',
+      body: JSON.stringify(settingsData),
+    });
+  }
+
+  async getUserSettings(): Promise<APIResponse<{ settings: any }>> {
+    return this.request('/users/me/settings');
+  }
+
   // Utility methods
   isAuthenticated(): boolean {
     return !!this.accessToken;

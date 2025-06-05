@@ -1,6 +1,18 @@
 // Global error handler middleware
+const { Sentry } = require('../services/sentryService'); // Import Sentry
 
 const errorHandler = (err, req, res, next) => {
+  // Capture exception in Sentry
+  Sentry.captureException(err, {
+    extra: {
+      url: req.url,
+      method: req.method,
+      ip: req.ip,
+      userAgent: req.get('User-Agent'),
+      userId: req.user?.id // If available, otherwise undefined is fine
+    }
+  });
+
   console.error('Error occurred:', {
     message: err.message,
     stack: err.stack,

@@ -1,7 +1,7 @@
 const express = require('express');
 const os = require('os');
 const performanceTracker = require('../services/performanceTracker');
-const { getErrorSummary } = require('../services/sentryService');
+const { Sentry, getErrorSummary } = require('../services/sentryService'); // Import Sentry
 const { pool, query } = require('../database/connection');
 const router = express.Router();
 
