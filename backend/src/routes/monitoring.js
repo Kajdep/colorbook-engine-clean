@@ -2,6 +2,7 @@ const express = require('express');
 const os = require('os');
 const { Pool } = require('pg');
 const performanceTracker = require('../services/performanceTracker');
+const { getErrorSummary } = require('../services/sentryService');
 const router = express.Router();
 
 // Database connection for health checks
@@ -185,14 +186,32 @@ router.get('/analytics', async (req, res) => {
       FROM projects
     `);
 
+    const metrics = performanceTracker.getMetrics();
+    let totalTime = 0;
+    let requestCount = 0;
+    let errorCount = 0;
+
+    for (const calls of Object.values(metrics)) {
+      for (const entry of calls) {
+        totalTime += entry.responseTimeMs;
+        requestCount += 1;
+        if (entry.statusCode >= 400) {
+          errorCount += 1;
+        }
+      }
+    }
+
+    const avgResponse = requestCount ? totalTime / requestCount : 0;
+    const errorRate = requestCount ? (errorCount / requestCount) * 100 : 0;
+
     const analytics = {
       timestamp: new Date().toISOString(),
       users: userStats.rows[0],
       projects: projectStats.rows[0],
       performance: {
-        avgResponseTime: '< 200ms', // This would be calculated from actual request logs
-        errorRate: '< 0.1%', // This would be calculated from error tracking
-        uptime: '99.9%' // This would be calculated from monitoring data
+        avgResponseTime: `${avgResponse.toFixed(2)}ms`,
+        errorRate: `${errorRate.toFixed(2)}%`,
+        uptime: `${(process.uptime() / 3600).toFixed(2)}h`
       }
     };
 
@@ -210,26 +229,21 @@ router.get('/analytics', async (req, res) => {
 router.get('/errors', async (req, res) => {
   try {
     const { timeframe = '24h' } = req.query;
-    
-    // This would typically connect to your error tracking service
-    // For now, we'll return a placeholder structure
-    const errorSummary = {
+
+    const summary = await getErrorSummary(timeframe);
+
+    if (!summary) {
+      return res.status(503).json({
+        error: 'Monitoring unavailable',
+        message: 'Sentry configuration missing'
+      });
+    }
+
+    res.json({
       timestamp: new Date().toISOString(),
       timeframe,
-      summary: {
-        totalErrors: 0,
-        criticalErrors: 0,
-        warningErrors: 0,
-        infoErrors: 0
-      },
-      topErrors: [
-        // This would be populated from actual error tracking data
-      ],
-      affectedUsers: 0,
-      resolvedErrors: 0
-    };
-
-    res.json(errorSummary);
+      ...summary
+    });
   } catch (error) {
     console.error('Error summary failed:', error);
     res.status(500).json({
