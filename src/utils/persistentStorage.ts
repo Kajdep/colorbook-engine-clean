@@ -525,47 +525,44 @@ class PersistentStorageManager {
   }
 
   private async syncToBackend(item: SyncQueueItem): Promise<void> {
-    const baseUrl = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001/api';
-    const token = backendAPI.getAccessToken();
+    try {
+      await this.updateSyncStatus(item.type, item.id, 'syncing');
 
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json'
-    };
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+      let response: { error?: string; message?: string } | undefined;
+
+      switch (item.type) {
+        case 'project':
+          if (item.action === 'delete') {
+            response = await backendAPI.deleteProject(item.id);
+          } else if (item.action === 'create') {
+            response = await backendAPI.createProject(item.data);
+          } else {
+            response = await backendAPI.updateProject(item.id, item.data);
+          }
+          break;
+        case 'story':
+          if (item.action === 'delete') {
+            response = await backendAPI.deleteStory(item.id);
+          } else if (item.action === 'create') {
+            response = await backendAPI.createStory(item.data);
+          } else {
+            response = await backendAPI.updateStory(item.id, item.data);
+          }
+          break;
+        default:
+          return;
+      }
+
+      if (response?.error) {
+        await this.updateSyncStatus(item.type, item.id, 'conflict');
+        throw new Error(response.error || response.message || 'Sync failed');
+      }
+
+      await this.updateSyncStatus(item.type, item.id, 'synced');
+    } catch (error) {
+      await this.updateSyncStatus(item.type, item.id, 'conflict');
+      throw error;
     }
-
-    let url = '';
-    let options: RequestInit = { method: 'GET', headers };
-
-    switch (item.type) {
-      case 'project':
-        if (item.action === 'delete') {
-          url = `${baseUrl}/projects/${item.id}`;
-          options.method = 'DELETE';
-        } else if (item.action === 'create') {
-          url = `${baseUrl}/projects`;
-          options.method = 'POST';
-          options.body = JSON.stringify(item.data);
-        } else {
-          url = `${baseUrl}/projects/${item.id}`;
-          options.method = 'PUT';
-          options.body = JSON.stringify(item.data);
-        }
-        break;
-      default:
-        // Unsupported type for backend sync
-        return;
-    }
-
-    const response = await fetch(url, options);
-
-    if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      throw new Error(data.error || data.message || 'Sync failed');
-    }
-
-    await this.updateSyncStatus(item.type, item.id, 'synced');
   }
 
   /**
