@@ -5,6 +5,7 @@ const helmet = require('helmet');
 const compression = require('compression');
 const morgan = require('morgan');
 const rateLimit = require('rate-limiter-flexible');
+const performanceLogger = require('./middleware/performanceLogger');
 
 // Import routes
 const authRoutes = require('./routes/auth');
@@ -64,6 +65,7 @@ app.use(compression());
 app.use(morgan('combined'));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(performanceLogger);
 
 // Apply rate limiting
 app.use(rateLimitMiddleware);
