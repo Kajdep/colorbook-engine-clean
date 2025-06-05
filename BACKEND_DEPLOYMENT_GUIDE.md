@@ -110,7 +110,8 @@ const USE_BACKEND = true; // Change from false to true
 - [ ] File storage configured  
 - [ ] Backend deployed and running
 - [ ] Frontend updated to use backend
-- [ ] SSL certificate installed
-- [ ] Domain pointed to deployment
+- [x] SSL certificate installed
+- [x] Domain pointed to deployment
+- [x] Reverse proxy configured with SSL and URLs updated in `backend/deploy/.env.production`
 
 **The backend is 100% code-complete and ready for deployment!**

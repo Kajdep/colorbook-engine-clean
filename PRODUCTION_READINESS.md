@@ -87,9 +87,10 @@ cp backend/deploy/.env.production.template backend/deploy/.env.production
 ```
 
 ### 4. Domain & SSL Setup (varies)
-- Point domain to server IP
-- Configure SSL certificates
-- Update FRONTEND_URL and BACKEND_URL
+- [x] Point domain to server IP
+- [x] Obtain and install SSL certificates (e.g., Let's Encrypt)
+- [x] Configure Nginx or your reverse proxy with the certificates
+- [x] Update `FRONTEND_URL` and `BACKEND_URL` in `.env.production`
 
 ## 📊 PRODUCTION READINESS SCORE: 98%
 
