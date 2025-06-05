@@ -152,6 +152,7 @@ The backend's request limits can be configured with two environment variables:
 
 Update these values in `.env` or your production configuration to tune API rate
 limits for your deployment.
+- The backend relies on **rate-limiter-flexible** v7.1.1 for in-memory limiting.
 
 ## License
 
