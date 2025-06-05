@@ -60,7 +60,7 @@ const Projects: React.FC = () => {
 
   const handleOpenProject = (project: Project) => {
     setCurrentProject(project);
-    setCurrentSection('story');
+    setCurrentSection('story-generator');
     addNotification({
       type: 'success',
       message: `Opened project: ${project.title}`

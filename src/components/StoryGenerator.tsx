@@ -77,7 +77,7 @@ const StoryGenerator: React.FC = () => {
         type: 'warning',
         message: 'Please configure your API key in settings first'
       });
-      setCurrentSection('settings');
+      setCurrentSection('api-settings');
       return;
     }
 
@@ -637,7 +637,7 @@ const StoryGenerator: React.FC = () => {
                 This enables access to various AI models for story generation.
               </p>
               <button
-                onClick={() => setCurrentSection('settings')}
+                onClick={() => setCurrentSection('api-settings')}
                 className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
               >
                 Configure API Settings

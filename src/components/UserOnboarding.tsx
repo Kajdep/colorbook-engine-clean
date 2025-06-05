@@ -141,7 +141,7 @@ const UserOnboarding: React.FC<UserOnboardingProps> = ({ isOpen, onClose, onComp
       action: {
         label: 'Try Story Generation',
         onClick: () => {
-          setCurrentSection('story');
+          setCurrentSection('story-generator');
           addNotification({
             type: 'info',
             message: 'Fill out the story form and click "Generate Story" to see the magic!'
