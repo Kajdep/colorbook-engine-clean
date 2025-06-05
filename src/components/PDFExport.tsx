@@ -124,7 +124,7 @@ const PDFExport: React.FC = () => {
     }
 
     if (project.pages) {
-      project.pages.forEach((storyPage, _index) => {
+      project.pages.forEach((storyPage) => {
         if (settings.includeStoryPages) {
           pages.push({ type: 'story', pageNumber: pageNumber++, content: storyPage });
         }

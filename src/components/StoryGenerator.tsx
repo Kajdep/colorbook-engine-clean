@@ -777,7 +777,7 @@ const StoryPageCard: React.FC<StoryPageCardProps> = ({
   };
 
   // Magic editor functionality
-  const handleTextSelection = (_event: React.MouseEvent) => {
+  const handleTextSelection = () => {
     const selection = window.getSelection();
     if (selection && selection.toString().length > 0) {
       const selectedText = selection.toString();

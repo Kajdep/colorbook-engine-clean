@@ -9,7 +9,7 @@ const aiService = new AIService({ apiKey: '', aiModel: '', imageService: 'none',
 // Simple wrapper objects used by the legacy code paths below. They delegate to
 // the generic AIService instance so TypeScript doesn't complain about missing
 // exports.
-const wrap = async (prompt: string, _opts?: any) => ({
+const wrap = async (prompt: string) => ({
   success: true,
   imageUrl: await aiService.generateImage(prompt),
   error: undefined as string | undefined
@@ -262,7 +262,6 @@ class AdvancedAIService {
 
   // Style Transfer
   async transferStyle(
-    sourceImageUrl: string,
     targetPrompt: string,
     styleId?: string
   ): Promise<{ success: boolean; imageUrl?: string; error?: string }> {
@@ -278,8 +277,7 @@ class AdvancedAIService {
 
       // Use Replicate's style transfer model (example)
       const result = await replicate.generateImage(
-        `${stylePrompt}, based on reference image style`,
-        { referenceImage: sourceImageUrl }
+        `${stylePrompt}, based on reference image style`
       );
 
       return result;
@@ -366,7 +364,7 @@ class AdvancedAIService {
   }
 
   // Quality Analysis
-  analyzeImageQuality(_imageUrl: string): Promise<{
+  analyzeImageQuality(): Promise<{
     score: number;
     issues: string[];
     suggestions: string[];
