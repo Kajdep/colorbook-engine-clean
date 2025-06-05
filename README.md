@@ -15,6 +15,8 @@ A comprehensive tool for creating professional-quality coloring books with AI-ge
 - **✅ KDP Compliance**: Comprehensive Amazon KDP requirements checker
 - **⚙️ Settings**: API configuration, project settings, and preferences
 - **🔔 Notifications**: Real-time feedback system with toast notifications
+- **💾 Persistent Storage**: Manage and back up all projects with IndexedDB and
+  local backups
 - **📱 Responsive**: Works perfectly on desktop, tablet, and mobile devices
 
 ### 🎯 AI Integration
