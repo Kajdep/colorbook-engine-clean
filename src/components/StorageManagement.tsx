@@ -10,8 +10,13 @@ const StorageManagement: React.FC<StorageManagementProps> = ({ isOpen, onClose }
   const {
     storageStats,
     syncStatus,
+    driveConnected,
+    projects,
     updateStorageStats,
     updateSyncStatus,
+    connectDrive,
+    disconnectDrive,
+    syncProjectToDrive,
     clearAllData,
     exportAllData,
     importData,
@@ -22,6 +27,8 @@ const StorageManagement: React.FC<StorageManagementProps> = ({ isOpen, onClose }
   const [isImporting, setIsImporting] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isDriveSyncing, setIsDriveSyncing] = useState(false);
+  const [isDriveConnecting, setIsDriveConnecting] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   useEffect(() => {
@@ -105,6 +112,30 @@ const StorageManagement: React.FC<StorageManagementProps> = ({ isOpen, onClose }
       console.error('Sync failed:', error);
     } finally {
       setIsSyncing(false);
+    }
+  };
+
+  const handleDriveConnect = async () => {
+    setIsDriveConnecting(true);
+    try {
+      await connectDrive();
+    } catch (err) {
+      console.error('Drive connect error:', err);
+    } finally {
+      setIsDriveConnecting(false);
+    }
+  };
+
+  const handleDriveSyncAll = async () => {
+    setIsDriveSyncing(true);
+    try {
+      for (const project of projects) {
+        await syncProjectToDrive(project);
+      }
+    } catch (err) {
+      console.error('Drive sync error:', err);
+    } finally {
+      setIsDriveSyncing(false);
     }
   };
 
@@ -219,6 +250,64 @@ const StorageManagement: React.FC<StorageManagementProps> = ({ isOpen, onClose }
                 )}
               </button>
             </div>
+          </div>
+
+          {/* Google Drive */}
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <h3 className="text-lg font-semibold mb-3">Google Drive</h3>
+            {driveConnected ? (
+              <div className="space-y-3">
+                <p className="text-sm text-green-700">Connected</p>
+                <button
+                  onClick={handleDriveSyncAll}
+                  disabled={isDriveSyncing}
+                  className="w-full bg-indigo-600 text-white py-2 px-4 rounded hover:bg-indigo-700 disabled:bg-gray-400 flex items-center justify-center"
+                >
+                  {isDriveSyncing ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                      Syncing
+                    </>
+                  ) : (
+                    'Sync All Projects'
+                  )}
+                </button>
+                <ul className="text-sm divide-y divide-gray-200">
+                  {projects.map(p => (
+                    <li key={p.id} className="flex justify-between py-1">
+                      <span>{p.title}</span>
+                      <span className="capitalize">
+                        {getProjectDriveStatus(p.id)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  onClick={disconnectDrive}
+                  className="w-full bg-red-600 text-white py-2 px-4 rounded hover:bg-red-700"
+                >
+                  Disconnect
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-sm text-red-700">Not connected</p>
+                <button
+                  onClick={handleDriveConnect}
+                  disabled={isDriveConnecting}
+                  className="w-full bg-indigo-600 text-white py-2 px-4 rounded hover:bg-indigo-700 disabled:bg-gray-400 flex items-center justify-center"
+                >
+                  {isDriveConnecting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                      Connecting
+                    </>
+                  ) : (
+                    'Connect Google Drive'
+                  )}
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Data Management Actions */}
