@@ -11,6 +11,7 @@ import {
   ComplianceResults
 } from '../types';
 import { persistentStorage } from '../utils/persistentStorage';
+import backendAPI from '../utils/backendAPI';
 
 interface User {
   id: string;
@@ -73,8 +74,8 @@ interface AppState {
   };
   
   // Auth Actions
-  login: (email: string) => Promise<void>;
-  register: (email: string, name: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
+  register: (email: string, name: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshAuth: () => Promise<void>;
   updateUser: (updates: Partial<User>) => Promise<void>;
@@ -209,76 +210,76 @@ export const useAppStore = create<AppState>()(
       isSidebarCollapsed: false, // Initialize new state
 
       // Auth Actions
-      login: async (email: string) => {
+      login: async (email: string, password: string) => {
         try {
           set({ isInitializingAuth: true });
-          
-          // For now, simulate login with localStorage until backend is deployed
-          const mockUser: User = {
-            id: generateId(),
-            email,
-            name: email.split('@')[0],
-            createdAt: new Date().toISOString(),
-            subscription: {
-              tier: 'free',
-              status: 'active'
-            }
-          };
-          
-          const mockToken = btoa(JSON.stringify({ userId: mockUser.id, email }));
-          
-          // Store in localStorage for now
-          localStorage.setItem('auth_token', mockToken);
-          localStorage.setItem('user_data', JSON.stringify(mockUser));
-          
+
+          const response = await backendAPI.login({ email, password });
+
+          if (response.error || !response.data) {
+            throw new Error(response.message || 'Login failed');
+          }
+
+          const { user, tokens } = response.data;
+
           set({
-            user: mockUser,
-            authToken: mockToken,
+            user: {
+              id: user.id,
+              email: user.email,
+              name: user.username || user.firstName || user.email,
+              createdAt: user.createdAt || new Date().toISOString(),
+              subscription: {
+                tier: user.subscriptionTier || 'free',
+                status: user.subscriptionStatus || 'active',
+              },
+            },
+            authToken: tokens.accessToken,
             isAuthenticated: true,
-            isInitializingAuth: false
+            isInitializingAuth: false,
           });
-          
-          // Load user projects after login
+
           await get().loadProjects();
-          
+
         } catch (error: any) {
           set({ isInitializingAuth: false });
           throw error;
         }
       },
-      
-      register: async (email: string, name: string) => {
+
+      register: async (email: string, name: string, password: string) => {
         try {
           set({ isInitializingAuth: true });
-          
-          // For now, simulate registration with localStorage until backend is deployed
-          const mockUser: User = {
-            id: generateId(),
+
+          const response = await backendAPI.register({
             email,
-            name,
-            createdAt: new Date().toISOString(),
-            subscription: {
-              tier: 'free',
-              status: 'active'
-            }
-          };
-          
-          const mockToken = btoa(JSON.stringify({ userId: mockUser.id, email }));
-          
-          // Store in localStorage for now
-          localStorage.setItem('auth_token', mockToken);
-          localStorage.setItem('user_data', JSON.stringify(mockUser));
-          
-          set({
-            user: mockUser,
-            authToken: mockToken,
-            isAuthenticated: true,
-            isInitializingAuth: false
+            password,
+            username: name,
           });
-          
-          // Load user projects after registration
+
+          if (response.error || !response.data) {
+            throw new Error(response.message || 'Registration failed');
+          }
+
+          const { user, tokens } = response.data;
+
+          set({
+            user: {
+              id: user.id,
+              email: user.email,
+              name: user.username || user.firstName || user.email,
+              createdAt: user.createdAt || new Date().toISOString(),
+              subscription: {
+                tier: user.subscriptionTier || 'free',
+                status: user.subscriptionStatus || 'active',
+              },
+            },
+            authToken: tokens.accessToken,
+            isAuthenticated: true,
+            isInitializingAuth: false,
+          });
+
           await get().loadProjects();
-          
+
         } catch (error: any) {
           set({ isInitializingAuth: false });
           throw error;
@@ -287,9 +288,7 @@ export const useAppStore = create<AppState>()(
       
       logout: async () => {
         try {
-          // Clear localStorage
-          localStorage.removeItem('auth_token');
-          localStorage.removeItem('user_data');
+          await backendAPI.logout();
         } catch (error) {
           console.error('Logout error:', error);
         } finally {
@@ -299,24 +298,33 @@ export const useAppStore = create<AppState>()(
             isAuthenticated: false,
             projects: [],
             currentProject: null,
-            currentStory: null
+            currentStory: null,
           });
         }
       },
       
       refreshAuth: async () => {
         try {
-          const token = localStorage.getItem('auth_token');
-          const userData = localStorage.getItem('user_data');
-          
-          if (token && userData) {
-            const user = JSON.parse(userData);
-            set({
-              user,
-              authToken: token,
-              isAuthenticated: true
-            });
-          }
+          const response = await backendAPI.getCurrentUser();
+
+          if (response.error || !response.data) return;
+
+          const { user } = response.data;
+
+          set({
+            user: {
+              id: user.id,
+              email: user.email,
+              name: user.username || user.firstName || user.email,
+              createdAt: user.createdAt || new Date().toISOString(),
+              subscription: {
+                tier: user.subscriptionTier || 'free',
+                status: user.subscriptionStatus || 'active',
+              },
+            },
+            authToken: backendAPI.getAccessToken(),
+            isAuthenticated: true,
+          });
         } catch (error) {
           console.error('Auth refresh failed:', error);
           await get().logout();
