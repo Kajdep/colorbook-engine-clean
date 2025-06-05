@@ -135,6 +135,15 @@ npm run dev
 
 **Your professional coloring book creation tool is complete and ready for business!** 🎨✨
 
+### Database Backups
+Use the `backend/backup.sh` script to create PostgreSQL dumps. Ensure `.env` contains your database credentials and run:
+
+```bash
+cd backend
+./backup.sh
+```
+Backups are stored in the `backups` directory unless another path is provided.
+
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
