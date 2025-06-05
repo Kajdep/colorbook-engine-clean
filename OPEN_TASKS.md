@@ -30,4 +30,24 @@ Verify functionality with the backend server running to ensure proper data persi
 Provide valid API keys for image and story generation so end-to-end tests can be executed.
 :::
 
+:::task-stub{title="Payment Integration"}
+Integrate Stripe checkout in `src/components/PaymentModal.tsx` by creating sessions through `/api/payments/create-checkout-session` instead of simulating.
+:::
+
+:::task-stub{title="Authentication with Backend"}
+Replace mocked login/registration in `src/store/useAppStore.ts` with calls to `/api/auth/login` and `/api/auth/register`, storing JWT tokens.
+:::
+
+:::task-stub{title="Google Drive Sync"}
+Add OAuth-based Google Drive integration with upload/download and sync status via a new `driveService.ts`.
+:::
+
+:::task-stub{title="Batch Operations Module"}
+Implement bulk PDF export and image generation under `src/batch` with progress tracking.
+:::
+
+:::task-stub{title="Update Documentation"}
+Correct README and status files to reflect incomplete features, removing "100%" claims.
+:::
+
 These tasks will bring the app closer to a true production-ready state.

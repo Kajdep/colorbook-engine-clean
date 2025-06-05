@@ -83,4 +83,4 @@ The app currently supports:
 - Project organization and management
 - Export for external use
 
-This is a **production-ready** coloring book creation tool with AI integration!
+This project remains under active development. Many features are functional but still evolving.
