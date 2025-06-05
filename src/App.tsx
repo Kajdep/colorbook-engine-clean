@@ -8,6 +8,9 @@ import Sidebar from './components/Sidebar';
 import StoryGenerator from './components/StoryGenerator';
 import ImageGenerator from './components/ImageGenerator';
 import Projects from './components/Projects';
+import DrawingCanvas from './components/DrawingCanvas';
+import PDFExport from './components/PDFExport';
+import KDPCompliance from './components/KDPCompliance';
 import { useAppStore } from './store/useAppStore';
 import './App.css';
 
@@ -48,6 +51,9 @@ function App() {
               {currentSection === 'api-settings' && <APISettings />}
               {currentSection === 'story-generator' && <StoryGenerator />}
               {currentSection === 'image-generator' && <ImageGenerator />}
+              {currentSection === 'canvas' && <DrawingCanvas />}
+              {currentSection === 'pdf' && <PDFExport />}
+              {currentSection === 'kdp' && <KDPCompliance />}
               {currentSection === 'cloud-upload' && (
                 <div className="text-center p-10">
                   <h2 className="text-2xl font-bold text-gray-600 mb-4">Cloud Upload</h2>
