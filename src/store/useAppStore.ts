@@ -214,13 +214,31 @@ export const useAppStore = create<AppState>()(
         try {
           set({ isInitializingAuth: true });
 
-          const response = await backendAPI.login({ email, password });
+          const res = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+          });
 
-          if (response.error || !response.data) {
-            throw new Error(response.message || 'Login failed');
+          const data = await res.json();
+
+          if (!res.ok) {
+            throw new Error(data.message || 'Login failed');
           }
 
-          const { user, tokens } = response.data;
+          const { user, tokens } = data;
+
+          // Persist tokens for backendAPI and components
+          if (tokens?.accessToken) {
+            localStorage.setItem('accessToken', tokens.accessToken);
+            localStorage.setItem('authToken', tokens.accessToken);
+            if (tokens.refreshToken) {
+              localStorage.setItem('refreshToken', tokens.refreshToken);
+            }
+            // Update backendAPI instance with fresh tokens
+            (backendAPI as any).accessToken = tokens.accessToken;
+            (backendAPI as any).refreshToken = tokens.refreshToken;
+          }
 
           set({
             user: {
@@ -250,17 +268,30 @@ export const useAppStore = create<AppState>()(
         try {
           set({ isInitializingAuth: true });
 
-          const response = await backendAPI.register({
-            email,
-            password,
-            username: name,
+          const res = await fetch('/api/auth/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password, username: name })
           });
 
-          if (response.error || !response.data) {
-            throw new Error(response.message || 'Registration failed');
+          const data = await res.json();
+
+          if (!res.ok) {
+            throw new Error(data.message || 'Registration failed');
           }
 
-          const { user, tokens } = response.data;
+          const { user, tokens } = data;
+
+          // Persist tokens for backendAPI and components
+          if (tokens?.accessToken) {
+            localStorage.setItem('accessToken', tokens.accessToken);
+            localStorage.setItem('authToken', tokens.accessToken);
+            if (tokens.refreshToken) {
+              localStorage.setItem('refreshToken', tokens.refreshToken);
+            }
+            (backendAPI as any).accessToken = tokens.accessToken;
+            (backendAPI as any).refreshToken = tokens.refreshToken;
+          }
 
           set({
             user: {
