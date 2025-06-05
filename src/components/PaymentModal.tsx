@@ -17,6 +17,7 @@ const plans = [
     name: 'Free',
     price: 0,
     period: 'forever',
+    priceId: '',
     icon: Star,
     color: 'from-gray-500 to-gray-600',
     features: {
@@ -39,6 +40,7 @@ const plans = [
     name: 'Pro',
     price: 19,
     period: 'month',
+    priceId: import.meta.env.VITE_STRIPE_PRO_PRICE_ID || '',
     icon: Zap,
     color: 'from-blue-500 to-purple-600',
     popular: true,
@@ -62,6 +64,7 @@ const plans = [
     name: 'Enterprise',
     price: 99,
     period: 'month',
+    priceId: import.meta.env.VITE_STRIPE_ENTERPRISE_PRICE_ID || '',
     icon: Crown,
     color: 'from-purple-600 to-pink-600',
     features: {
@@ -127,26 +130,25 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose }) => {
     setIsProcessing(true);
 
     try {
-      // Simulate payment processing
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // For demo purposes, simulate successful payment
-      const mockSubscription = {
-        tier: selectedPlan as 'free' | 'pro' | 'enterprise',
-        status: 'active' as const,
-        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days from now
-      };
-      
-      await updateUser({
-        subscription: mockSubscription
+      const token = localStorage.getItem('authToken');
+      const response = await fetch('/api/payments/create-checkout-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({
+          priceId: selectedPlanData?.priceId,
+          successUrl: `${window.location.origin}/payment/success`,
+          cancelUrl: `${window.location.origin}/payment/cancel`,
+          metadata: { plan: selectedPlan }
+        })
       });
-      
-      addNotification({
-        type: 'success',
-        message: `Successfully subscribed to ${selectedPlanData?.name} plan!`
-      });
-      
-      onClose();
+
+      if (!response.ok) throw new Error('Failed to create checkout session');
+
+      const data = await response.json();
+      window.location.href = data.url;
     } catch (error) {
       addNotification({
         type: 'error',

@@ -11,6 +11,7 @@ import {
   ComplianceResults
 } from '../types';
 import { persistentStorage } from '../utils/persistentStorage';
+import backendAPI from '../utils/backendAPI';
 
 interface User {
   id: string;
@@ -73,8 +74,8 @@ interface AppState {
   };
   
   // Auth Actions
-  login: (email: string) => Promise<void>;
-  register: (email: string, name: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
+  register: (email: string, name: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshAuth: () => Promise<void>;
   updateUser: (updates: Partial<User>) => Promise<void>;
@@ -209,76 +210,56 @@ export const useAppStore = create<AppState>()(
       isSidebarCollapsed: false, // Initialize new state
 
       // Auth Actions
-      login: async (email: string) => {
+      login: async (email: string, password: string) => {
         try {
           set({ isInitializingAuth: true });
-          
-          // For now, simulate login with localStorage until backend is deployed
-          const mockUser: User = {
-            id: generateId(),
-            email,
-            name: email.split('@')[0],
-            createdAt: new Date().toISOString(),
-            subscription: {
-              tier: 'free',
-              status: 'active'
-            }
-          };
-          
-          const mockToken = btoa(JSON.stringify({ userId: mockUser.id, email }));
-          
-          // Store in localStorage for now
-          localStorage.setItem('auth_token', mockToken);
-          localStorage.setItem('user_data', JSON.stringify(mockUser));
-          
-          set({
-            user: mockUser,
-            authToken: mockToken,
-            isAuthenticated: true,
-            isInitializingAuth: false
-          });
-          
-          // Load user projects after login
-          await get().loadProjects();
-          
+
+          const response = await backendAPI.login({ email, password });
+
+          if (response.data) {
+            const { user, tokens } = response.data;
+            localStorage.setItem('auth_token', tokens.accessToken);
+            localStorage.setItem('user_data', JSON.stringify(user));
+
+            set({
+              user,
+              authToken: tokens.accessToken,
+              isAuthenticated: true,
+              isInitializingAuth: false
+            });
+
+            await get().loadProjects();
+          } else {
+            throw new Error(response.error || 'Login failed');
+          }
         } catch (error: any) {
           set({ isInitializingAuth: false });
           throw error;
         }
       },
       
-      register: async (email: string, name: string) => {
+      register: async (email: string, name: string, password: string) => {
         try {
           set({ isInitializingAuth: true });
-          
-          // For now, simulate registration with localStorage until backend is deployed
-          const mockUser: User = {
-            id: generateId(),
-            email,
-            name,
-            createdAt: new Date().toISOString(),
-            subscription: {
-              tier: 'free',
-              status: 'active'
-            }
-          };
-          
-          const mockToken = btoa(JSON.stringify({ userId: mockUser.id, email }));
-          
-          // Store in localStorage for now
-          localStorage.setItem('auth_token', mockToken);
-          localStorage.setItem('user_data', JSON.stringify(mockUser));
-          
-          set({
-            user: mockUser,
-            authToken: mockToken,
-            isAuthenticated: true,
-            isInitializingAuth: false
-          });
-          
-          // Load user projects after registration
-          await get().loadProjects();
-          
+
+          const response = await backendAPI.register({ email, password, username: name });
+
+          if (response.data) {
+            const { user, tokens } = response.data;
+            localStorage.setItem('auth_token', tokens.accessToken);
+            localStorage.setItem('user_data', JSON.stringify(user));
+
+            set({
+              user,
+              authToken: tokens.accessToken,
+              isAuthenticated: true,
+              isInitializingAuth: false
+            });
+
+            await get().loadProjects();
+          } else {
+            throw new Error(response.error || 'Registration failed');
+          }
         } catch (error: any) {
           set({ isInitializingAuth: false });
           throw error;
@@ -287,7 +268,7 @@ export const useAppStore = create<AppState>()(
       
       logout: async () => {
         try {
-          // Clear localStorage
+          await backendAPI.logout();
           localStorage.removeItem('auth_token');
           localStorage.removeItem('user_data');
         } catch (error) {
@@ -307,15 +288,16 @@ export const useAppStore = create<AppState>()(
       refreshAuth: async () => {
         try {
           const token = localStorage.getItem('auth_token');
-          const userData = localStorage.getItem('user_data');
-          
-          if (token && userData) {
-            const user = JSON.parse(userData);
-            set({
-              user,
-              authToken: token,
-              isAuthenticated: true
-            });
+          if (token) {
+            const response = await backendAPI.getCurrentUser();
+            if (response.data) {
+              localStorage.setItem('user_data', JSON.stringify(response.data.user));
+              set({
+                user: response.data.user,
+                authToken: token,
+                isAuthenticated: true
+              });
+            }
           }
         } catch (error) {
           console.error('Auth refresh failed:', error);

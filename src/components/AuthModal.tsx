@@ -72,13 +72,13 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
     
     try {
       if (mode === 'login') {
-        await login(formData.email);
+        await login(formData.email, formData.password);
         addNotification({ 
           type: 'success', 
           message: 'Welcome back! Successfully logged in.' 
         });
       } else {
-        await register(formData.email, formData.name!);
+        await register(formData.email, formData.name!, formData.password);
         addNotification({ 
           type: 'success', 
           message: 'Account created successfully! Welcome to ColorBook Engine.' 
