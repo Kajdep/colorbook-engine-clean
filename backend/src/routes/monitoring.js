@@ -110,6 +110,11 @@ router.get('/metrics', async (req, res) => {
       const projectCount = await query('SELECT COUNT(*) FROM projects');
       dbStats = {
         ...dbStatsQuery.rows[0],
+        connectionPool: {
+          total: pool.totalCount,
+          idle: pool.idleCount,
+          waiting: pool.waitingCount
+        },
         rows: {
           users: parseInt(userCount.rows[0].count, 10),
           projects: parseInt(projectCount.rows[0].count, 10)
@@ -241,14 +246,14 @@ router.get('/errors', async (req, res) => {
   try {
     const { timeframe = '24h' } = req.query;
 
-    const summary = await getErrorSummary(timeframe);
-
-    if (!summary) {
+    if (!process.env.SENTRY_AUTH_TOKEN || !process.env.SENTRY_ORG || !process.env.SENTRY_PROJECT) {
       return res.status(503).json({
         error: 'Monitoring unavailable',
         message: 'Sentry configuration missing'
       });
     }
+
+    const summary = await getErrorSummary(timeframe);
 
     res.json({
       timestamp: new Date().toISOString(),
