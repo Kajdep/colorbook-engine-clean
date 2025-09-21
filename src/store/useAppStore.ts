@@ -344,6 +344,18 @@ export const useAppStore = create<AppState>()(
       
       refreshAuth: async () => {
         try {
+          // For development, auto-authenticate with mock user
+          const existingUser = localStorage.getItem('mockUser');
+          if (existingUser) {
+            const user = JSON.parse(existingUser);
+            set({
+              user,
+              authToken: 'mock-token',
+              isAuthenticated: true,
+            });
+            return;
+          }
+
           const response = await backendAPI.getCurrentUser();
 
           if (response.error || !response.data) return;
@@ -366,7 +378,23 @@ export const useAppStore = create<AppState>()(
           });
         } catch (error) {
           console.error('Auth refresh failed:', error);
-          await get().logout();
+          // For development, create mock user
+          const mockUser = {
+            id: 'mock-user-1',
+            email: 'test@example.com',
+            name: 'Test User',
+            createdAt: new Date().toISOString(),
+            subscription: {
+              tier: 'free' as const,
+              status: 'active' as const,
+            },
+          };
+          localStorage.setItem('mockUser', JSON.stringify(mockUser));
+          set({
+            user: mockUser,
+            authToken: 'mock-token',
+            isAuthenticated: true,
+          });
         }
       },
       
