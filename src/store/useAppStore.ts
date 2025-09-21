@@ -367,10 +367,10 @@ export const useAppStore = create<AppState>()(
               id: user.id,
               email: user.email,
               name: user.username || user.firstName || user.email,
-              createdAt: user.createdAt || new Date().toISOString(),
+              createdAt: (user as any).createdAt || new Date().toISOString(),
               subscription: {
-                tier: user.subscriptionTier || 'free',
-                status: user.subscriptionStatus || 'active',
+                tier: (user as any).subscriptionTier || 'free',
+                status: (user as any).subscriptionStatus || 'active',
               },
             },
             authToken: backendAPI.getAccessToken(),
@@ -929,8 +929,28 @@ export const useAppStore = create<AppState>()(
         try {
           set({ isLoading: true });
           
-          // Check for existing auth
-          await get().refreshAuth();
+          // For development: create mock authentication
+          const mockUser = {
+            id: 'dev-user-1',
+            email: 'dev@example.com',
+            name: 'Development User',
+            createdAt: new Date().toISOString(),
+            subscription: {
+              tier: 'free' as const,
+              status: 'active' as const,
+            },
+          };
+          
+          set({
+            user: mockUser,
+            authToken: 'dev-token',
+            isAuthenticated: true,
+          });
+          
+          // Check for existing auth (only if not already authenticated)
+          if (!get().isAuthenticated) {
+            await get().refreshAuth();
+          }
           
           // Load settings from persistent storage
           get().loadApiSettings();

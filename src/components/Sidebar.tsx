@@ -15,6 +15,7 @@ import {
   ChevronLeft,
   ChevronRight,
   LogOut,
+  Map,
 } from 'lucide-react';
 
 const Sidebar: React.FC = () => {
@@ -60,6 +61,7 @@ const Sidebar: React.FC = () => {
         {[
           { id: 'dashboard' as Section, label: 'Dashboard', icon: Home },
           { id: 'projects' as Section, label: 'Projects', icon: FolderOpen },
+          { id: 'plot' as Section, label: 'Plot', icon: Map },
           { id: 'story-generator' as Section, label: 'Story Generator', icon: BookOpen },
           { id: 'image-generator' as Section, label: 'Image Generator', icon: Palette },
           { id: 'canvas' as Section, label: 'Canvas', icon: Palette },

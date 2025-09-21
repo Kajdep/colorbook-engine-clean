@@ -7,6 +7,7 @@ import HelpCenter from './components/HelpCenter';
 import NotificationContainer from './components/NotificationContainer';
 import Sidebar from './components/Sidebar';
 import StoryGenerator from './components/StoryGenerator';
+import Plot from './components/Plot';
 import ImageGenerator from './components/ImageGenerator';
 import Projects from './components/Projects';
 import DrawingCanvas from './components/DrawingCanvas';
@@ -68,6 +69,7 @@ function App() {
               )}
               {currentSection === 'projects' && <Projects />}
               {currentSection === 'api-settings' && <APISettings />}
+              {currentSection === 'plot' && <Plot />}
               {currentSection === 'story-generator' && <StoryGenerator />}
               {currentSection === 'image-generator' && <ImageGenerator />}
               {currentSection === 'canvas' && <DrawingCanvas />}

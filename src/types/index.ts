@@ -123,6 +123,7 @@ export type Section =
   | 'help'
   | 'api-settings'
   | 'story-generator'
+  | 'plot'
   | 'image-generator'
   | 'cloud-upload'
   | 'account';

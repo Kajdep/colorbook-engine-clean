@@ -17,6 +17,7 @@ const StorageManagement: React.FC<StorageManagementProps> = ({ isOpen, onClose }
     connectDrive,
     disconnectDrive,
     syncProjectToDrive,
+    getProjectDriveStatus,
     clearAllData,
     exportAllData,
     importData,
