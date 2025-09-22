@@ -3,6 +3,7 @@ import { Sparkles, BookOpen, Settings, Wand2, Download, RefreshCw, Edit } from '
 import { useAppStore } from '../store/useAppStore';
 import { AIService, StoryGenerationParams } from '../utils/aiService';
 import { StoryData, StoryPage } from '../types';
+import { useVisualGeneration } from '../hooks/useVisualGeneration';
 import './StoryGenerator.css';
 
 const StoryGenerator: React.FC = () => {
@@ -14,6 +15,9 @@ const StoryGenerator: React.FC = () => {
     addNotification,
     setCurrentSection 
   } = useAppStore();
+
+  // Use the new visual generation hook
+  const visualGeneration = useVisualGeneration();
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [formData, setFormData] = useState<StoryGenerationParams>({
@@ -174,55 +178,72 @@ const StoryGenerator: React.FC = () => {
       return;
     }
 
-    if (apiSettings.imageService.startsWith('google-')) {
-      if (!apiSettings.googleApiKey || !apiSettings.googleProjectId) {
-        addNotification({
-          type: 'warning',
-          message: 'Configure Google AI credentials in API Settings first'
-        });
-        setCurrentSection('api-settings');
-        return;
-      }
-    } else if (!apiSettings.imageApiKey && apiSettings.imageService !== 'none') {
-      addNotification({
-        type: 'warning',
-        message: 'Configure image API key in API Settings first'
-      });
-      setCurrentSection('api-settings');
-      return;
-    }
-    
     const page = currentStory.pages[pageIndex];
     
-    addNotification({
-      type: 'info',
-      message: `Generating image for page ${pageIndex + 1}...`
-    });
-    
     try {
-      const aiService = new AIService(apiSettings);
-      const imageData = await aiService.generateImage(page.imagePrompt);
-      
-      // Update the story with the generated image
-      const updatedStory = {
-        ...currentStory,
-        pages: currentStory.pages.map((p, i) => 
-          i === pageIndex 
-            ? { ...p, imageGenerated: true, imageData }
-            : p
-        )
-      };
-      
-      setCurrentStory(updatedStory);
-      
-      addNotification({
-        type: 'success',
-        message: `Image generated for page ${pageIndex + 1}!`
+      // Use the new visual generation agent
+      const requestId = await visualGeneration.generateImage(
+        'coloring-page',
+        page.imagePrompt,
+        {
+          priority: 'normal',
+          projectId: currentStory.id || 'story',
+          pageId: `page_${page.pageNumber}`,
+          imageStyle: currentStory.metadata.imageStyle,
+          aspectRatio: currentStory.metadata.aspectRatio
+        }
+      );
+
+      // Set up progress tracking
+      const unsubscribeProgress = visualGeneration.onProgress(requestId, (progress, message) => {
+        addNotification({
+          type: 'info',
+          message: `Page ${pageIndex + 1}: ${message} (${progress}%)`
+        });
       });
+
+      // Set up completion handler
+      const unsubscribeCompleted = visualGeneration.onCompleted(requestId, (result) => {
+        // Update the story with the generated image
+        const updatedStory = {
+          ...currentStory,
+          pages: currentStory.pages.map((p, i) => 
+            i === pageIndex 
+              ? { ...p, imageGenerated: true, imageData: result.imageData }
+              : p
+          )
+        };
+        
+        setCurrentStory(updatedStory);
+        
+        addNotification({
+          type: 'success',
+          message: `Image generated for page ${pageIndex + 1}! (${Math.round(result.generationTime / 1000)}s)`
+        });
+
+        // Cleanup
+        unsubscribeProgress();
+        unsubscribeCompleted();
+        unsubscribeFailed();
+      });
+
+      // Set up error handler
+      const unsubscribeFailed = visualGeneration.onFailed(requestId, (error) => {
+        addNotification({
+          type: 'error',
+          message: `Failed to generate image for page ${pageIndex + 1}: ${error.message}`
+        });
+
+        // Cleanup
+        unsubscribeProgress();
+        unsubscribeCompleted();
+        unsubscribeFailed();
+      });
+
     } catch (error) {
       addNotification({
         type: 'error',
-        message: `Failed to generate image: ${error instanceof Error ? error.message : 'Unknown error'}`
+        message: `Failed to start image generation: ${error instanceof Error ? error.message : 'Unknown error'}`
       });
     }
   }
@@ -297,21 +318,98 @@ const StoryGenerator: React.FC = () => {
     
     addNotification({
       type: 'info',
-      message: 'Generating all images... This may take a few minutes.'
+      message: 'Starting batch image generation...'
     });
     
-    for (let i = 0; i < currentStory.pages.length; i++) {
-      if (!currentStory.pages[i].imageGenerated) {
-        await generateSingleImage(i);
-        // Add delay between generations to avoid rate limits
-        await new Promise(resolve => setTimeout(resolve, 1000));
+    // Use the visual generation agent for batch processing
+    const pendingPages = currentStory.pages
+      .map((page, index) => ({ page, index }))
+      .filter(({ page }) => !page.imageGenerated);
+
+    if (pendingPages.length === 0) {
+      addNotification({
+        type: 'info',
+        message: 'All pages already have images!'
+      });
+      return;
+    }
+
+    // Track batch completion
+    let completedCount = 0;
+    const totalCount = pendingPages.length;
+
+    const handleBatchCompletion = () => {
+      if (completedCount >= totalCount) {
+        addNotification({
+          type: 'success',
+          message: `All ${totalCount} images generated successfully! 🎉`
+        });
+      }
+    };
+
+    // Start generation for all pending pages
+    for (const { page, index } of pendingPages) {
+      try {
+        const requestId = await visualGeneration.generateImage(
+          'coloring-page',
+          page.imagePrompt,
+          {
+            priority: 'normal',
+            projectId: currentStory.id || 'story',
+            pageId: `page_${page.pageNumber}`,
+            imageStyle: currentStory.metadata.imageStyle,
+            aspectRatio: currentStory.metadata.aspectRatio
+          }
+        );
+
+        // Set up completion handler for this page
+        visualGeneration.onCompleted(requestId, (result) => {
+          // Update the story with the generated image
+          if (currentStory) {
+            const updatedStory = {
+              ...currentStory,
+              pages: currentStory.pages.map((p: StoryPage, i: number) => 
+                i === index 
+                  ? { ...p, imageGenerated: true, imageData: result.imageData }
+                  : p
+              )
+            };
+            setCurrentStory(updatedStory);
+          }
+
+          completedCount++;
+          addNotification({
+            type: 'success',
+            message: `Page ${index + 1} completed (${completedCount}/${totalCount})`
+          });
+
+          handleBatchCompletion();
+        });
+
+        // Set up error handler for this page
+        visualGeneration.onFailed(requestId, (error) => {
+          completedCount++;
+          addNotification({
+            type: 'error',
+            message: `Page ${index + 1} failed: ${error.message}`
+          });
+
+          handleBatchCompletion();
+        });
+
+        // Add small delay to avoid overwhelming the system
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+      } catch (error) {
+        completedCount++;
+        addNotification({
+          type: 'error',
+          message: `Failed to start generation for page ${index + 1}: ${error instanceof Error ? error.message : 'Unknown error'}`
+        });
+
+        handleBatchCompletion();
       }
     }
-    
-    addNotification({
-      type: 'success',
-      message: 'All images generated successfully! 🎉'
-    });
   }
   
   function exportStory() {
@@ -645,13 +743,43 @@ const StoryGenerator: React.FC = () => {
           </div>
           
           {currentStory ? (
-            <StoryDisplay 
-              story={currentStory} 
-              onGenerateImage={generateSingleImage} 
-              onRegenerateImage={regenerateImage}
-              onEditStory={editStoryText}
-              onEditImagePrompt={editImagePrompt}
-            />
+            <>
+              {/* Visual Generation Queue Status */}
+              {(visualGeneration.state.queueLength > 0 || visualGeneration.state.activeRequests > 0) && (
+                <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4 mb-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-sm font-semibold text-blue-800 mb-1">🎨 Image Generation Queue</h3>
+                      <div className="text-xs text-blue-600 space-y-1">
+                        <div>Active: {visualGeneration.state.activeRequests} | Queued: {visualGeneration.state.queueLength}</div>
+                        {visualGeneration.state.isProcessing && (
+                          <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
+                            <span>Processing images...</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-2xl">
+                      {visualGeneration.state.isProcessing ? '⚡' : '🎯'}
+                    </div>
+                  </div>
+                  {visualGeneration.state.error && (
+                    <div className="mt-2 text-xs text-red-600 bg-red-50 p-2 rounded">
+                      Error: {visualGeneration.state.error}
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              <StoryDisplay 
+                story={currentStory} 
+                onGenerateImage={generateSingleImage} 
+                onRegenerateImage={regenerateImage}
+                onEditStory={editStoryText}
+                onEditImagePrompt={editImagePrompt}
+              />
+            </>
           ) : (
             <div className="text-center text-gray-500 py-12">
               <Wand2 size={48} className="mx-auto mb-4 text-gray-300" />

@@ -2,6 +2,7 @@ import { Project, APISettings } from '../types';
 import { advancedPublishing } from '../utils/advancedPublishing';
 import { AIService } from '../utils/aiService';
 import { errorTracker } from '../utils/errorTracking';
+import { getVisualGenerationAgent, BatchGenerationUtils } from '../agents';
 
 export type BatchOperationType = 'export-pdf' | 'generate-images';
 
@@ -79,6 +80,80 @@ export class BatchManager {
   }
 
   async generateMissingImages(projects: Project[], apiSettings: APISettings): Promise<BatchProgress> {
+    const jobId = `batch_${Date.now()}`;
+    
+    // Use the new Visual Generation Agent for better workflow management
+    try {
+      const agent = getVisualGenerationAgent(apiSettings);
+      const batchUtils = new BatchGenerationUtils(agent);
+      
+      const batchId = await batchUtils.generateProjectImages(projects, {
+        filterExisting: true,
+        priority: 'normal',
+        progressCallback: (progress) => {
+          // Convert agent batch progress to our BatchProgress format
+          const batchProgress: BatchProgress = {
+            jobId,
+            operation: 'generate-images',
+            total: progress.totalRequests,
+            completed: progress.completedRequests,
+            errors: progress.errors.map(err => ({
+              projectId: err.projectId || 'unknown',
+              message: err.error
+            }))
+          };
+          this.notify(batchProgress);
+        }
+      });
+      
+      // Monitor the batch and return final progress
+      let finalProgress: BatchProgress = {
+        jobId,
+        operation: 'generate-images',
+        total: 0,
+        completed: 0,
+        errors: []
+      };
+      
+      // Wait for completion and get final status
+      const maxWaitTime = 30 * 60 * 1000; // 30 minutes
+      const startTime = Date.now();
+      const checkInterval = 5000; // 5 seconds
+      
+      while (Date.now() - startTime < maxWaitTime) {
+        const agentProgress = batchUtils.getBatchProgress(batchId);
+        if (agentProgress) {
+          finalProgress = {
+            jobId,
+            operation: 'generate-images',
+            total: agentProgress.totalRequests,
+            completed: agentProgress.completedRequests,
+            errors: agentProgress.errors.map(err => ({
+              projectId: err.projectId || 'unknown',
+              message: err.error
+            }))
+          };
+          
+          // Check if completed
+          if (agentProgress.completedRequests + agentProgress.failedRequests >= agentProgress.totalRequests) {
+            break;
+          }
+        }
+        
+        await new Promise(resolve => setTimeout(resolve, checkInterval));
+      }
+      
+      return finalProgress;
+      
+    } catch (error) {
+      // Fallback to original implementation if agent fails
+      console.warn('Visual Generation Agent failed, falling back to original implementation:', error);
+      return this.generateMissingImagesLegacy(projects, apiSettings);
+    }
+  }
+
+  // Keep the original implementation as a fallback
+  private async generateMissingImagesLegacy(projects: Project[], apiSettings: APISettings): Promise<BatchProgress> {
     const jobId = `batch_${Date.now()}`;
     const tasks: Array<{ projectId: string; pageIndex: number; prompt: string }> = [];
     projects.forEach((project) => {
