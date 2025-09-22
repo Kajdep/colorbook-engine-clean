@@ -1,29 +1,4 @@
-interface PublishingOptions {
-  title: string;
-  author: string;
-  description?: string;
-  language: string;
-  pages: Array<{
-    type: 'cover' | 'story' | 'coloring' | 'activity' | 'copyright';
-    content: string;
-    imageUrl?: string;
-  }>;
-  metadata?: {
-    isbn?: string;
-    publisher?: string;
-    publishDate?: Date;
-    keywords?: string[];
-    category?: string;
-  };
-}
-
-interface ExportResult {
-  success: boolean;
-  blob?: Blob;
-  downloadUrl?: string;
-  error?: string;
-  metadata?: any;
-}
+import { PublishingOptions, ExportResult } from '../types';
 
 class AdvancedPublishingService {
   

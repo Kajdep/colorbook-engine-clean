@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../store/useAppStore';
-import { jsPDF } from 'jspdf';
-import { FileText, Download, Settings, AlertTriangle, Ruler, Palette } from 'lucide-react';
+import { useExportAgent } from '../hooks/useExportAgent';
+import { FileText, Download, Settings, AlertTriangle, Ruler, Palette, Clock, CheckCircle, XCircle } from 'lucide-react';
 import CanvaExport from './CanvaExport';
 
 // Core interfaces for PDF export
@@ -31,11 +31,12 @@ interface ValidationError {
 
 const PDFExport: React.FC = () => {
   const { projects, addNotification } = useAppStore();
+  const exportAgent = useExportAgent();
   const [selectedProject, setSelectedProject] = useState<string>('');
-  const [isGenerating, setIsGenerating] = useState(false);
   const [previewPages, setPreviewPages] = useState<PreviewPage[]>([]);
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
   const [showCanvaExport, setShowCanvaExport] = useState(false);
+  const [activeExports, setActiveExports] = useState<{[key: string]: any}>({});
 
   // PDF settings with professional defaults
   const [settings, setSettings] = useState<PDFSettings>({
@@ -172,6 +173,7 @@ const PDFExport: React.FC = () => {
 
   const dimensions = calculateDimensions();
 
+  // Enhanced PDF generation using Export Agent
   const generatePDF = async () => {
     const project = projects.find(p => p.id === selectedProject);
     if (!project || validationErrors.some(e => e.type === 'error')) {
@@ -182,62 +184,124 @@ const PDFExport: React.FC = () => {
       return;
     }
 
-    setIsGenerating(true);
-
     try {
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'in',
-        format: [dimensions.bleedWidth, dimensions.bleedHeight],
-        compress: true,
-        precision: 16
+      // Submit export job through the agent
+      const jobId = await exportAgent.submitExport(selectedProject, 'PDF', {
+        settings: {
+          pdfSettings: settings,
+          dimensions: dimensions
+        },
+        priority: 'normal'
       });
 
-      pdf.setProperties({
-        title: project.title,
-        author: project.metadata?.author || 'ColorBook Engine',
-        subject: 'Professional Coloring Book',
-        creator: 'ColorBook Engine PDF Export'
-      });
+      // Track the export job
+      setActiveExports(prev => ({
+        ...prev,
+        [jobId]: { format: 'PDF', progress: 0, status: 'pending' }
+      }));
 
-      for (let i = 0; i < previewPages.length; i++) {
-        const page = previewPages[i];
-        
-        if (i > 0) pdf.addPage();
-
-        if (settings.bleed > 0) {
-          pdf.setFillColor(255, 248, 248);
-          pdf.rect(0, 0, dimensions.bleedWidth, dimensions.bleedHeight, 'F');
+      // Subscribe to progress updates
+      exportAgent.subscribeToJob(
+        jobId,
+        (progress) => {
+          setActiveExports(prev => ({
+            ...prev,
+            [jobId]: {
+              ...prev[jobId],
+              progress: progress.progress,
+              status: progress.status,
+              currentStep: progress.currentStep
+            }
+          }));
+        },
+        (completedJob) => {
+          if (completedJob.status === 'completed' && completedJob.result?.downloadUrl) {
+            // Auto-download the file
+            const link = document.createElement('a');
+            link.href = completedJob.result.downloadUrl;
+            const timestamp = new Date().toISOString().slice(0, 10);
+            link.download = `${project.title.replace(/[^a-zA-Z0-9]/g, '_')}_Professional_${timestamp}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+          }
+          
+          // Remove from active exports
+          setActiveExports(prev => {
+            const updated = { ...prev };
+            delete updated[jobId];
+            return updated;
+          });
         }
-
-        pdf.setFillColor(255, 255, 255);
-        pdf.rect(settings.bleed, settings.bleed, dimensions.width, dimensions.height, 'F');
-
-        addPageContent(pdf, page);
-
-        if (settings.bleed > 0) addCropMarks(pdf);
-      }
-
-      const timestamp = new Date().toISOString().slice(0, 10);
-      const filename = `${project.title.replace(/[^a-zA-Z0-9]/g, '_')}_Professional_${timestamp}.pdf`;
-      
-      pdf.save(filename);
-      addNotification({
-        type: 'success',
-        message: `✅ PDF exported successfully: ${filename}`
-      });
+      );
 
     } catch (error) {
-      console.error('PDF generation error:', error);
+      console.error('Export submission error:', error);
       addNotification({
         type: 'error',
-        message: '❌ Error generating PDF. Please try again.'
+        message: '❌ Failed to start export. Please try again.'
       });
-    } finally {
-      setIsGenerating(false);
     }
   };
 
+  // Generate using multiple formats via Export Agent
+  const generateMultipleFormats = async () => {
+    const project = projects.find(p => p.id === selectedProject);
+    if (!project || validationErrors.some(e => e.type === 'error')) {
+      addNotification({
+        type: 'error',
+        message: 'Please fix validation errors before exporting'
+      });
+      return;
+    }
+
+    try {
+      const jobId = await exportAgent.submitExport(selectedProject, 'All-Formats', {
+        settings: {
+          pdfSettings: settings,
+          dimensions: dimensions
+        },
+        priority: 'high'
+      });
+
+      setActiveExports(prev => ({
+        ...prev,
+        [jobId]: { format: 'All-Formats', progress: 0, status: 'pending' }
+      }));
+
+      exportAgent.subscribeToJob(
+        jobId,
+        (progress) => {
+          setActiveExports(prev => ({
+            ...prev,
+            [jobId]: {
+              ...prev[jobId],
+              progress: progress.progress,
+              status: progress.status,
+              currentStep: progress.currentStep
+            }
+          }));
+        },
+        () => {
+          setActiveExports(prev => {
+            const updated = { ...prev };
+            delete updated[jobId];
+            return updated;
+          });
+        }
+      );
+
+    } catch (error) {
+      console.error('Multi-format export error:', error);
+      addNotification({
+        type: 'error',
+        message: '❌ Failed to start multi-format export. Please try again.'
+      });
+    }
+  };
+
+  // Legacy PDF generation functions (now handled by Export Agent)
+  /*
   const addPageContent = (pdf: jsPDF, page: PreviewPage) => {
     const safeX = settings.bleed + settings.margins.inner;
     const safeY = settings.bleed + settings.margins.top;
@@ -351,6 +415,7 @@ const PDFExport: React.FC = () => {
     pdf.line(dimensions.bleedWidth - markLength, dimensions.height + settings.bleed + markOffset, dimensions.bleedWidth, dimensions.height + settings.bleed + markOffset);
     pdf.line(dimensions.width + settings.bleed + markOffset, dimensions.bleedHeight - markLength, dimensions.width + settings.bleed + markOffset, dimensions.bleedHeight);
   };
+  */
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -444,24 +509,58 @@ const PDFExport: React.FC = () => {
               </div>
             </div>
 
+            {/* Export Progress Indicator */}
+            {Object.keys(activeExports).length > 0 && (
+              <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <h4 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
+                  <Clock size={16} />
+                  Active Exports
+                </h4>
+                {Object.entries(activeExports).map(([jobId, job]) => (
+                  <div key={jobId} className="mb-2 last:mb-0">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-blue-800">{job.format} Export</span>
+                      <div className="flex items-center gap-2">
+                        {job.status === 'processing' && (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                        )}
+                        {job.status === 'completed' && <CheckCircle size={16} className="text-green-600" />}
+                        {job.status === 'failed' && <XCircle size={16} className="text-red-600" />}
+                        <span>{job.progress}%</span>
+                      </div>
+                    </div>
+                    {job.currentStep && (
+                      <div className="text-xs text-blue-600 mt-1">{job.currentStep}</div>
+                    )}
+                    <div className="mt-1 w-full bg-blue-200 rounded-full h-2">
+                      <div 
+                        className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${job.progress}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
             {/* Export Buttons */}
             <div className="space-y-3">
               <button
                 onClick={generatePDF}
-                disabled={!selectedProject || validationErrors.some(e => e.type === 'error') || isGenerating}
+                disabled={!selectedProject || validationErrors.some(e => e.type === 'error') || Object.keys(activeExports).length > 0}
                 className="w-full bg-red-600 text-white py-3 px-4 rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-semibold"
               >
-                {isGenerating ? (
-                  <>
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                    Generating PDF...
-                  </>
-                ) : (
-                  <>
-                    <Download size={20} />
-                    Export PDF
-                  </>
-                )}
+                <Download size={20} />
+                Export PDF (Agent)
+              </button>
+
+              <button
+                onClick={generateMultipleFormats}
+                disabled={!selectedProject || validationErrors.some(e => e.type === 'error') || Object.keys(activeExports).length > 0}
+                className="w-full bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-semibold"
+              >
+                <FileText size={20} />
+                Export All Formats
               </button>
 
               {/* NEW: Canva Export Button */}
