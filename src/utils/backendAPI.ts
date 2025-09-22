@@ -68,7 +68,7 @@ class BackendAPIClient {
   }
 
   // HTTP request helper
-  private async request<T = any>(
+  async request<T = any>(
     endpoint: string,
     options: RequestInit = {}
   ): Promise<APIResponse<T>> {

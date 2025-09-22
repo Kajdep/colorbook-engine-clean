@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Sparkles, BookOpen, Settings, Wand2, Download, RefreshCw, Edit } from 'lucide-react';
+import { Sparkles, BookOpen, Settings, Wand2, Download, RefreshCw, Edit, Zap, Activity } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { AIService, StoryGenerationParams } from '../utils/aiService';
 import { StoryData, StoryPage } from '../types';
+import { useChapterAgent } from '../hooks/useChapterAgent';
 import './StoryGenerator.css';
 
 const StoryGenerator: React.FC = () => {
@@ -16,6 +17,14 @@ const StoryGenerator: React.FC = () => {
   } = useAppStore();
 
   const [isGenerating, setIsGenerating] = useState(false);
+  const [useAgentMode, setUseAgentMode] = useState(true);
+  const [agentOptions, setAgentOptions] = useState({
+    useAdvancedAI: false,
+    enableCharacterConsistency: false,
+    enableStyleConsistency: false,
+    generateImages: true
+  });
+  
   const [formData, setFormData] = useState<StoryGenerationParams>({
     theme: '',
     characters: '',
@@ -29,6 +38,16 @@ const StoryGenerator: React.FC = () => {
     aspectRatio: 'square',
     moral: '',
     generalInstructions: ''
+  });
+
+  // Initialize Chapter Agent
+  const chapterAgent = useChapterAgent({
+    config: {
+      apiSettings,
+      useBackendAPI: false, // Use local agent for now
+      enableRealTimeUpdates: true,
+      pollingInterval: 1000
+    }
   });
 
   const handleInputChange = (field: keyof StoryGenerationParams, value: any) => {
@@ -77,7 +96,6 @@ const StoryGenerator: React.FC = () => {
         type: 'warning',
         message: 'Please configure your API key in API Settings first'
       });
-      // Redirect the user to the settings page to enter their API key
       setCurrentSection('api-settings');
       return;
     }
@@ -93,14 +111,33 @@ const StoryGenerator: React.FC = () => {
     setIsGenerating(true);
 
     try {
-      const aiService = new AIService(apiSettings);
-      const storyData = await aiService.generateStoryWithImagePrompts(formData);
+      let storyData: StoryData;
+
+      if (useAgentMode) {
+        // Use Chapter Generation Agent
+        addNotification({
+          type: 'info',
+          message: 'Starting AI Chapter Generation Agent workflow...'
+        });
+
+        storyData = await chapterAgent.generateChapter(formData, agentOptions);
+        
+        addNotification({
+          type: 'success',
+          message: `Chapter generated using AI Agent! 🤖 Generated ${storyData.pages.length} pages with advanced workflow.`
+        });
+      } else {
+        // Use traditional AI service
+        const aiService = new AIService(apiSettings);
+        storyData = await aiService.generateStoryWithImagePrompts(formData);
+        
+        addNotification({
+          type: 'success',
+          message: `Story with ${storyData.pages.length} pages generated! 🎉`
+        });
+      }
       
       setCurrentStory(storyData);
-      addNotification({
-        type: 'success',
-        message: `Story with ${storyData.pages.length} pages generated! 🎉`
-      });
     } catch (error) {
       console.error('Story generation error:', error);
       addNotification({
@@ -597,6 +634,117 @@ const StoryGenerator: React.FC = () => {
                   🦄 Fantasy
                 </button>
               </div>
+            </div>
+
+            {/* Agent Configuration */}
+            <div className="agent-config-section">
+              <label className="form-label">
+                <Zap size={16} />
+                AI Generation Mode
+              </label>
+              <div className="mode-selector">
+                <label className="radio-option">
+                  <input
+                    type="radio"
+                    name="generationMode"
+                    checked={useAgentMode}
+                    onChange={() => setUseAgentMode(true)}
+                  />
+                  <span className="radio-label">
+                    <Zap size={14} />
+                    Agent Mode (Advanced AI Workflow)
+                  </span>
+                </label>
+                <label className="radio-option">
+                  <input
+                    type="radio"
+                    name="generationMode"
+                    checked={!useAgentMode}
+                    onChange={() => setUseAgentMode(false)}
+                  />
+                  <span className="radio-label">
+                    <Sparkles size={14} />
+                    Standard Mode (Simple Generation)
+                  </span>
+                </label>
+              </div>
+
+              {useAgentMode && (
+                <div className="agent-options">
+                  <h4 className="options-title">Agent Workflow Options</h4>
+                  <div className="checkbox-grid">
+                    <label className="checkbox-option">
+                      <input
+                        type="checkbox"
+                        checked={agentOptions.useAdvancedAI}
+                        onChange={(e) => setAgentOptions(prev => ({
+                          ...prev,
+                          useAdvancedAI: e.target.checked
+                        }))}
+                      />
+                      <span>Use Advanced AI Service</span>
+                    </label>
+                    <label className="checkbox-option">
+                      <input
+                        type="checkbox"
+                        checked={agentOptions.enableCharacterConsistency}
+                        onChange={(e) => setAgentOptions(prev => ({
+                          ...prev,
+                          enableCharacterConsistency: e.target.checked
+                        }))}
+                      />
+                      <span>Character Consistency</span>
+                    </label>
+                    <label className="checkbox-option">
+                      <input
+                        type="checkbox"
+                        checked={agentOptions.enableStyleConsistency}
+                        onChange={(e) => setAgentOptions(prev => ({
+                          ...prev,
+                          enableStyleConsistency: e.target.checked
+                        }))}
+                      />
+                      <span>Style Consistency</span>
+                    </label>
+                    <label className="checkbox-option">
+                      <input
+                        type="checkbox"
+                        checked={agentOptions.generateImages}
+                        onChange={(e) => setAgentOptions(prev => ({
+                          ...prev,
+                          generateImages: e.target.checked
+                        }))}
+                      />
+                      <span>Auto-generate Images</span>
+                    </label>
+                  </div>
+
+                  {/* Agent Status Display */}
+                  {chapterAgent.currentJob && (
+                    <div className="agent-status">
+                      <h4 className="status-title">
+                        <Activity size={16} />
+                        Agent Status
+                      </h4>
+                      <div className="status-details">
+                        <div className="status-step">
+                          Current Step: {chapterAgent.currentJob.status.progress.currentStep}
+                        </div>
+                        <div className="progress-bar">
+                          <div 
+                            className="progress-fill"
+                            style={{ width: `${chapterAgent.currentJob.status.progress.percentage}%` }}
+                          />
+                        </div>
+                        <div className="progress-text">
+                          {chapterAgent.currentJob.status.progress.completedSteps} / {chapterAgent.currentJob.status.progress.totalSteps} steps
+                          ({chapterAgent.currentJob.status.progress.percentage}%)
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Generate Button */}
