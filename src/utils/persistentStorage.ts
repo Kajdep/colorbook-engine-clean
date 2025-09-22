@@ -797,6 +797,41 @@ class PersistentStorageManager {
       lastSync: localStorage.getItem(STORAGE_CONFIG.localStorageKeys.lastSync)
     };
   }
+
+  /**
+   * Generic item storage for any data
+   */
+  async setItem(key: string, value: any): Promise<void> {
+    try {
+      const serializedValue = JSON.stringify(value);
+      localStorage.setItem(key, serializedValue);
+    } catch (error) {
+      console.error('Failed to save item to storage:', error);
+      throw error;
+    }
+  }
+
+  async getItem<T>(key: string): Promise<T | null> {
+    try {
+      const serializedValue = localStorage.getItem(key);
+      if (serializedValue === null) {
+        return null;
+      }
+      return JSON.parse(serializedValue) as T;
+    } catch (error) {
+      console.error('Failed to retrieve item from storage:', error);
+      return null;
+    }
+  }
+
+  async removeItem(key: string): Promise<void> {
+    try {
+      localStorage.removeItem(key);
+    } catch (error) {
+      console.error('Failed to remove item from storage:', error);
+      throw error;
+    }
+  }
 }
 
 // Export singleton instance
