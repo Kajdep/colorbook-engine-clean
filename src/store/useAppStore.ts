@@ -10,6 +10,7 @@ import {
   Section,
   ComplianceResults
 } from '../types';
+import { ExportJob } from '../utils/exportAgent';
 import { persistentStorage } from '../utils/persistentStorage';
 import backendAPI from '../utils/backendAPI';
 import driveService from '../utils/driveService';
@@ -54,6 +55,7 @@ interface AppState {
   
   // Export State
   exportSettings: ExportSettings;
+  exportJobs: ExportJob[];
   
   // Compliance State
   lastComplianceResults: ComplianceResults | null;
@@ -138,6 +140,14 @@ interface AppState {
   updateExportSettings: (settings: Partial<ExportSettings>) => void;
   loadExportSettings: () => void;
   
+  // Export Job Actions
+  addExportJob: (job: ExportJob) => void;
+  updateExportJob: (jobId: string, updates: Partial<ExportJob>) => void;
+  removeExportJob: (jobId: string) => void;
+  getExportJob: (jobId: string) => ExportJob | undefined;
+  getProjectExportJobs: (projectId: string) => ExportJob[];
+  clearCompletedJobs: () => void;
+  
   // Compliance Actions
   setComplianceResults: (results: ComplianceResults | null) => void;
   
@@ -199,6 +209,7 @@ export const useAppStore = create<AppState>()(
         includeColorBars: false,
         doubleSided: false
       },
+      exportJobs: [],
       lastComplianceResults: null,
       storageStats: {
         projects: 0,
@@ -767,6 +778,39 @@ export const useAppStore = create<AppState>()(
         if (settings) {
           set({ exportSettings: settings });
         }
+      },
+
+      // Export Job Actions
+      addExportJob: (job) => {
+        const jobs = [...get().exportJobs, job];
+        set({ exportJobs: jobs });
+      },
+
+      updateExportJob: (jobId, updates) => {
+        const jobs = get().exportJobs.map(job => 
+          job.id === jobId ? { ...job, ...updates } : job
+        );
+        set({ exportJobs: jobs });
+      },
+
+      removeExportJob: (jobId) => {
+        const jobs = get().exportJobs.filter(job => job.id !== jobId);
+        set({ exportJobs: jobs });
+      },
+
+      getExportJob: (jobId) => {
+        return get().exportJobs.find(job => job.id === jobId);
+      },
+
+      getProjectExportJobs: (projectId) => {
+        return get().exportJobs.filter(job => job.projectId === projectId);
+      },
+
+      clearCompletedJobs: () => {
+        const jobs = get().exportJobs.filter(job => 
+          job.status !== 'completed' && job.status !== 'failed' && job.status !== 'cancelled'
+        );
+        set({ exportJobs: jobs });
       },
 
       // Compliance Actions
